@@ -75,8 +75,8 @@ def build_deep_link(source: str, origin: str, dest_code: str, departure_date: st
         ),
         "Google Flights": (
             f"https://www.google.com/travel/flights/search"
-            f"?tfs=CBwQARoeEgoyMDI2LTA3LTEwagcIARIDVExWcgcIARIDTEhS"
-            f"&q=direct+flights+from+TLV+to+{dest_code}+on+{dy}"
+            f"?q=flights+from+TLV+to+{dest_code}+on+{dy}"
+            f"&tfs=CBwQAhoeEgoyMDI2LTA3LTEwagcIARIDVExWcgcIARIDTEhSQAFIAXABggELCP___________wGYAQI"
         ),
         "FlyAll": (
             f"https://flyall.club/Flights"
@@ -330,22 +330,36 @@ def build_email_html(
     <a href="https://www.walla-tours.co.il/catalog/flights?origin=TLV" style="background:#cc0000;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">וואלה טורס</a>
   </td></tr>
 
-  <tr><td style="padding:8px 0 6px;text-align:center;">
-    <p style="color:#94a3b8;font-size:11px;margin:0 0 10px;">🇮🇱 ישראלים + חברות תעופה ישירות</p>
-    <a href="https://flyall.club/Flights" style="background:#0066cc;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">✈️ FlyAll</a>
-    <a href="https://www.maxtravel.co.il/deals/%D7%98%D7%99%D7%A1%D7%95%D7%AA-%D7%94%D7%A8%D7%92%D7%A2-%D7%94%D7%90%D7%97%D7%A8%D7%95%D7%9F" style="background:#e31e24;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">💳 MaxTravel</a>
-    <a href="https://www.hulyo.co.il/flights" style="background:#ff6b35;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">⚡ חוליו</a>
-    <a href="https://secretflights.co.il/last-minute-flights/" style="background:#1a1a2e;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🔒 טיסות סודיות</a>
-    <a href="https://www.israir.co.il/Flights/FlightSearch" style="background:#003087;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ישראייר</a>
-    <a href="https://www.arkia.com/he/flights" style="background:#e8000d;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ארקיע</a>
-    <a href="https://www.elal.com/he-il/israel" style="background:#003399;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 אל על</a>
+  <!-- ── שורה 2: סוכנויות ישראליות מובילות ── -->
+  <tr><td style="padding:8px 0 4px;text-align:center;">
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 8px;font-weight:600;">🇮🇱 סוכנויות נסיעות ישראליות</p>
+    <a href="https://www.kishrey-teufa.co.il/flights" target="_blank" style="background:#6b21a8;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">קשרי תעופה</a>
+    <a href="https://www.ophirtours.co.il/flights.html" target="_blank" style="background:#be7206;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">אופיר טורס</a>
+    <a href="https://www.issta.co.il/Flights" target="_blank" style="background:#0070b8;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">איסתא</a>
+    <a href="https://www.gulliver.co.il/flights" target="_blank" style="background:#e60026;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">דוליבר</a>
+    <a href="https://www.travelyst.co.il/flights" target="_blank" style="background:#0f766e;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">טרווליסט</a>
+    <a href="https://www.explorer.co.il/flights" target="_blank" style="background:#1d4ed8;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">אקספלורר</a>
+    <a href="https://www.smartair.co.il/flights" target="_blank" style="background:#059669;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">SmartAir</a>
+    <a href="https://flyall.club/Flights" target="_blank" style="background:#0066cc;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">FlyAll</a>
+    <a href="https://www.maxtravel.co.il/deals/%D7%98%D7%99%D7%A1%D7%95%D7%AA-%D7%94%D7%A8%D7%92%D7%A2-%D7%94%D7%90%D7%97%D7%A8%D7%95%D7%9F" target="_blank" style="background:#e31e24;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">MaxTravel</a>
+    <a href="https://www.hulyo.co.il/flights" target="_blank" style="background:#ff6b35;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">⚡ חוליו</a>
+    <a href="https://secretflights.co.il/last-minute-flights/" target="_blank" style="background:#1a1a2e;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🔒 טיסות סודיות</a>
   </td></tr>
 
+  <!-- ── שורה 3: חברות תעופה ישראליות ישירות ── -->
+  <tr><td style="padding:4px 0 4px;text-align:center;">
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 8px;font-weight:600;">✈️ חברות תעופה ישראליות</p>
+    <a href="https://www.elal.com/he-il/israel" target="_blank" style="background:#003399;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 אל על</a>
+    <a href="https://www.israir.co.il/Flights/FlightSearch" target="_blank" style="background:#003087;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ישראייר</a>
+    <a href="https://www.arkia.com/he/flights" target="_blank" style="background:#e8000d;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ארקיע</a>
+  </td></tr>
+
+  <!-- ── שורה 4: קבוצות פייסבוק ── -->
   <tr><td style="padding:4px 0 22px;text-align:center;">
-    <p style="color:#94a3b8;font-size:11px;margin:0 0 10px;">👥 קבוצות פייסבוק ישראליות</p>
-    <a href="https://www.facebook.com/groups/natkati" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">נתקעתי ברגע האחרון</a>
-    <a href="https://www.facebook.com/SecretFlights.co.il" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">טיסות סודיות</a>
-    <a href="https://www.facebook.com/Hulyo.il" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">חוליו</a>
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 8px;font-weight:600;">👥 קבוצות פייסבוק ישראליות</p>
+    <a href="https://www.facebook.com/groups/natkati" target="_blank" style="background:#1877f2;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">נתקעתי ברגע האחרון</a>
+    <a href="https://www.facebook.com/SecretFlights.co.il" target="_blank" style="background:#1877f2;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">טיסות סודיות</a>
+    <a href="https://www.facebook.com/Hulyo.il" target="_blank" style="background:#1877f2;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">חוליו</a>
   </td></tr>
 
 </table>
