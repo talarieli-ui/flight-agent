@@ -1,11 +1,11 @@
 """
-Flight Scanner — Real prices from 3 RapidAPI sources + SerpAPI + Aviasales.
-APIs:
-  1. Skyscanner Flights (Crawlio)         — skyscanner-flights.p.rapidapi.com
-  2. Skyscanner Flights & Travel (elis)   — skyscanner-flights-travel-api.p.rapidapi.com
-  3. Flights Scraper Sky (Things4u)       — flights-sky.p.rapidapi.com
-  4. SerpAPI Google Flights               — serpapi.com
-  5. Aviasales                            — api.travelpayouts.com (fallback)
+Flight Scanner — Sky Scrapper API (apiheya) via RapidAPI.
+This is the correct API from the screenshot.
+Host: sky-scrapper.p.rapidapi.com
+Endpoints:
+  GET /api/v1/flights/searchAirport    — get airport entityId
+  GET /api/v1/flights/searchFlights    — search one-way flights
+  GET /api/v2/flights/searchFlights    — search one-way (v2)
 """
 
 import os, time, logging, requests
@@ -22,7 +22,7 @@ DESTINATIONS = [
     {"code": "RHO", "name": "רודוס"},
     {"code": "CFU", "name": "קורפו"},
     {"code": "EFL", "name": "קפלוניה"},
-    {"code": "PVK", "name": "לפקדה / פרבזה"},
+    {"code": "PVK", "name": "לפקדה"},
     {"code": "ZTH", "name": "זקינתוס"},
     {"code": "SKG", "name": "סלוניקי"},
     {"code": "JTR", "name": "סנטוריני"},
@@ -72,13 +72,11 @@ def deep_link(source, origin, dest, dep):
     d8   = dt.strftime("%Y%m%d")
     dy   = dt.strftime("%Y-%m-%d")
     slug = KIWI_SLUGS.get(dest, dest.lower())
-    m = {
+    return {
         "Skyscanner":     f"https://www.skyscanner.net/transport/flights/{origin.lower()}/{dest.lower()}/{d8}/?adults=1&cabinclass=economy&stops=!twoPlusStops",
         "Google Flights": f"https://www.google.com/travel/flights/search?q=flights+from+{origin}+to+{dest}+on+{dy}",
         "Aviasales":      f"https://www.aviasales.com/search/{origin}{d8}{dest}1",
-        "Kiwi.com":       f"https://www.kiwi.com/en/search/results/tel-aviv-israel/{slug}/{dy}/{dy}?stops=0&adults=1",
-    }
-    return m.get(source, m["Skyscanner"])
+    }.get(source, f"https://www.skyscanner.net/transport/flights/{origin.lower()}/{dest.lower()}/{d8}/?adults=1")
 
 
 def search_dates():
@@ -95,243 +93,130 @@ def _mk(source, origin, dest, price_ils, dep, arr="",
         ret_dep="", ret_arr="", dur=0, airline="?", stops=0):
     return {
         "source": source, "origin": origin, "destination": dest,
-        "price_ils": int(price_ils), "price_usd": round(price_ils/ILS_PER_USD, 2),
+        "price_ils": int(price_ils), "price_usd": round(price_ils / ILS_PER_USD, 2),
         "price_verified": True,
         "departure": dep, "arrival": arr,
         "return_departure": ret_dep, "return_arrival": ret_arr,
         "duration_min": dur, "stops": stops, "airline": airline,
-        "deep_link": deep_link("Skyscanner" if "kyscanner" in source or source=="Flights Scraper Sky" else source,
-                                origin, dest, dep[:10] if dep else ""),
+        "deep_link": deep_link(source, origin, dest, dep[:10] if dep else ""),
     }
 
 
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
-
-
-class SkyscannerCrawlio:
-    """Skyscanner Flights by Crawlio — skyscanner-flights.p.rapidapi.com"""
-    HOST = "skyscanner-flights.p.rapidapi.com"
-
-    def __init__(self):
-        self.s = requests.Session()
-        self.s.headers.update({
-            "X-RapidAPI-Key":  RAPIDAPI_KEY,
-            "X-RapidAPI-Host": self.HOST,
-        })
-        self._ok = bool(RAPIDAPI_KEY)
-
-    def search(self, origin, dest, dep_date):
-        if not self._ok: return []
-        try:
-            # Search One Way Flights endpoint
-            r = self.s.get(f"https://{self.HOST}/v1/flights/search-one-way", params={
-                "origin":      origin,
-                "destination": dest,
-                "date":        dep_date,
-                "adults":      "1",
-                "currency":    "ILS",
-                "countryCode": "IL",
-                "locale":      "he-IL",
-            }, timeout=15)
-            if r.status_code == 429:
-                logger.warning("[Crawlio] quota exceeded"); self._ok = False; return []
-            r.raise_for_status()
-            data = r.json()
-            results = []
-            for it in data.get("data", {}).get("itineraries", []):
-                price = it.get("price", {}).get("raw", 0)
-                if not price: continue
-                legs  = it.get("legs", [])
-                if not legs: continue
-                leg   = legs[0]
-                stops = leg.get("stopCount", 0)
-                if stops > 1: continue
-                dep  = leg.get("departure", dep_date)
-                arr  = leg.get("arrival", "")
-                al   = (leg.get("carriers", {}).get("marketing") or [{}])[0].get("name","?")
-                results.append(_mk("Skyscanner", origin, dest, price,
-                    dep=dep, arr=arr, dur=leg.get("durationInMinutes",0),
-                    airline=al, stops=stops))
-            time.sleep(1.2); return results
-        except Exception as e:
-            logger.warning(f"[Crawlio] {origin}→{dest}: {e}"); return []
-
-
-class SkyscannerElisLab:
-    """Skyscanner Flights & Travel API by elis-lab"""
-    HOST = "skyscanner-flights-travel-api.p.rapidapi.com"
+class SkyScrapper:
+    """
+    Sky Scrapper API by apiheya — sky-scrapper.p.rapidapi.com
+    The correct API from the RapidAPI screenshot.
+    """
+    HOST = "sky-scrapper.p.rapidapi.com"
+    BASE = f"https://{HOST}"
+    _entity_cache = {}
 
     def __init__(self):
-        self.s = requests.Session()
-        self.s.headers.update({
-            "X-RapidAPI-Key":  RAPIDAPI_KEY,
-            "X-RapidAPI-Host": self.HOST,
-            "Content-Type": "application/json",
-        })
-        self._ok = bool(RAPIDAPI_KEY)
-
-    def search(self, origin, dest, dep_date):
-        if not self._ok: return []
-        try:
-            r = self.s.get(f"https://{self.HOST}/flights/getCheapestOneway", params={
-                "origin":      f"{origin}-sky",
-                "destination": f"{dest}-sky",
-                "departDate":  dep_date,
-                "adults":      "1",
-                "currency":    "ILS",
-                "locale":      "he-IL",
-                "market":      "IL",
-            }, timeout=15)
-            if r.status_code == 429:
-                logger.warning("[ElisLab] quota exceeded"); self._ok = False; return []
-            r.raise_for_status()
-            data = r.json()
-            results = []
-            quotes = data.get("quotes", []) or data.get("data", {}).get("quotes", [])
-            for q in quotes:
-                price = q.get("minPrice", 0)
-                if not price: continue
-                leg   = q.get("outboundLeg", {})
-                stops = 0 if q.get("isDirect") else 1
-                if stops > 1: continue
-                dep   = leg.get("departureDate", dep_date)
-                al    = (leg.get("carrierIds") or ["?"])[0]
-                results.append(_mk("Skyscanner", origin, dest, float(price),
-                    dep=dep, airline=str(al), stops=stops))
-            time.sleep(1.2); return results
-        except Exception as e:
-            logger.warning(f"[ElisLab] {origin}→{dest}: {e}"); return []
-
-
-class FlightsScraperSky:
-    """Flights Scraper Sky by Things4u — flights-sky.p.rapidapi.com"""
-    HOST = "flights-sky.p.rapidapi.com"
-
-    def __init__(self):
-        self.s = requests.Session()
-        self.s.headers.update({
-            "X-RapidAPI-Key":  RAPIDAPI_KEY,
+        self.key = os.environ.get("RAPIDAPI_KEY", "")
+        self.session = requests.Session()
+        self.session.headers.update({
+            "X-RapidAPI-Key":  self.key,
             "X-RapidAPI-Host": self.HOST,
         })
-        self._ok = bool(RAPIDAPI_KEY)
+        self._ok = bool(self.key)
 
-    def search(self, origin, dest, dep_date):
-        if not self._ok: return []
+    def _get_entity(self, iata: str) -> tuple:
+        """Returns (skyId, entityId) for an IATA code."""
+        if iata in self._entity_cache:
+            return self._entity_cache[iata]
         try:
-            # First get entity IDs
-            orig_id = self._airport_id(origin)
-            dest_id = self._airport_id(dest)
-            if not orig_id or not dest_id: return []
-
-            r = self.s.get(f"https://{self.HOST}/flights/search-one-way", params={
-                "fromEntityId": orig_id,
-                "toEntityId":   dest_id,
-                "departDate":   dep_date,
-                "adults":       "1",
-                "currency":     "ILS",
-                "locale":       "he-IL",
-                "market":       "IL",
-                "stops":        "direct,1stop",
-            }, timeout=20)
-            if r.status_code == 429:
-                logger.warning("[FlightsScraperSky] quota"); self._ok = False; return []
-            r.raise_for_status()
-            data = r.json()
-            results = []
-            for it in data.get("data", {}).get("itineraries", []):
-                price = it.get("price", {}).get("raw", 0)
-                if not price: continue
-                legs  = it.get("legs", [])
-                if not legs: continue
-                leg   = legs[0]
-                stops = leg.get("stopCount", 0)
-                if stops > 1: continue
-                dep  = leg.get("departure", dep_date)
-                arr  = leg.get("arrival", "")
-                al   = (leg.get("carriers", {}).get("marketing") or [{}])[0].get("name","?")
-                results.append(_mk("Flights Scraper Sky", origin, dest, price,
-                    dep=dep, arr=arr, dur=leg.get("durationInMinutes",0),
-                    airline=al, stops=stops))
-            time.sleep(1.5); return results
-        except Exception as e:
-            logger.warning(f"[FlightsScraperSky] {origin}→{dest}: {e}"); return []
-
-    _cache = {}
-    def _airport_id(self, iata):
-        if iata in self._cache: return self._cache[iata]
-        try:
-            r = self.s.get(f"https://{self.HOST}/flights/auto-complete",
+            r = self.session.get(f"{self.BASE}/api/v1/flights/searchAirport",
                 params={"query": iata, "locale": "en-US"}, timeout=10)
-            r.raise_for_status()
-            places = r.json().get("data", [])
-            for p in places:
-                if p.get("navigation", {}).get("relevantFlightParams", {}).get("skyId") == iata:
-                    eid = p.get("navigation", {}).get("relevantFlightParams", {}).get("entityId", "")
-                    self._cache[iata] = eid
-                    return eid
-            # fallback: take first result
-            if places:
-                eid = places[0].get("navigation", {}).get("relevantFlightParams", {}).get("entityId","")
-                self._cache[iata] = eid
-                return eid
-        except Exception as e:
-            logger.warning(f"[FlightsScraperSky] airport lookup {iata}: {e}")
-        return ""
-
-
-class SerpAPIFlights:
-    """Google Flights via SerpAPI. 100 free/month."""
-    URL = "https://serpapi.com/search"
-
-    def __init__(self):
-        self.key  = os.getenv("SERPAPI_KEY","")
-        self.s    = requests.Session()
-        self._ok  = bool(self.key)
-
-    def search(self, origin, dest, dep_date):
-        if not self._ok: return []
-        try:
-            r = self.s.get(self.URL, params={
-                "engine":"google_flights",
-                "departure_id":origin,"arrival_id":dest,
-                "outbound_date":dep_date,
-                "travel_class":1,"stops":2,
-                "currency":"ILS","hl":"iw","api_key":self.key,
-            }, timeout=20)
             if r.status_code == 429:
-                self._ok = False; return []
+                self._ok = False
+                return "", ""
+            r.raise_for_status()
+            data = r.json().get("data", [])
+            for place in data:
+                nav = place.get("navigation", {}).get("relevantFlightParams", {})
+                if nav.get("skyId") == iata:
+                    result = (nav.get("skyId", ""), nav.get("entityId", ""))
+                    self._entity_cache[iata] = result
+                    return result
+            # fallback: first result
+            if data:
+                nav = data[0].get("navigation", {}).get("relevantFlightParams", {})
+                result = (nav.get("skyId", ""), nav.get("entityId", ""))
+                self._entity_cache[iata] = result
+                return result
+        except Exception as e:
+            logger.warning(f"[SkyScrapper] airport {iata}: {e}")
+        return "", ""
+
+    def search(self, origin: str, dest: str, dep_date: str) -> list:
+        if not self._ok:
+            return []
+        orig_sky, orig_eid = self._get_entity(origin)
+        dest_sky, dest_eid = self._get_entity(dest)
+        if not orig_eid or not dest_eid:
+            logger.warning(f"[SkyScrapper] entity IDs not found: {origin}({orig_eid}) {dest}({dest_eid})")
+            return []
+        try:
+            r = self.session.get(f"{self.BASE}/api/v2/flights/searchFlights",
+                params={
+                    "originSkyId":        orig_sky or origin,
+                    "destinationSkyId":   dest_sky or dest,
+                    "originEntityId":     orig_eid,
+                    "destinationEntityId": dest_eid,
+                    "date":               dep_date,
+                    "adults":             "1",
+                    "currency":           "ILS",
+                    "locale":             "he-IL",
+                    "market":             "IL",
+                    "cabinClass":         "economy",
+                    "sortBy":             "best",
+                    "limit":              "10",
+                }, timeout=20)
+            if r.status_code == 429:
+                logger.warning("[SkyScrapper] quota exceeded")
+                self._ok = False
+                return []
             r.raise_for_status()
             data = r.json()
-            if "error" in data:
-                if any(w in data["error"].lower() for w in ["credit","quota","limit"]):
-                    logger.warning("[SerpAPI] quota exhausted")
-                    self._ok = False
-                return []
+            # Handle incomplete status
+            context = data.get("data", {}).get("context", {})
+            status  = context.get("status", "")
+            if status == "incomplete":
+                logger.info(f"[SkyScrapper] {origin}→{dest}: incomplete results, using partial")
+
+            itineraries = data.get("data", {}).get("itineraries", [])
             results = []
-            for f in (data.get("best_flights",[]) + data.get("other_flights",[])):
-                price = f.get("price",0)
+            for it in itineraries:
+                price = it.get("price", {}).get("raw", 0)
                 if not price: continue
-                legs  = f.get("flights",[])
-                stops = len(legs)-1
+                legs  = it.get("legs", [])
+                if not legs: continue
+                leg   = legs[0]
+                stops = leg.get("stopCount", 0)
                 if stops > 1: continue
-                dep = legs[0].get("departure_airport",{}).get("time",dep_date) if legs else dep_date
-                arr = legs[-1].get("arrival_airport",{}).get("time","") if legs else ""
-                results.append(_mk("Google Flights",origin,dest,price,
-                    dep=dep,arr=arr,dur=f.get("total_duration",0),
-                    airline=legs[0].get("airline","?") if legs else "?",stops=stops))
-            time.sleep(2.0); return results
+                dep   = leg.get("departure", dep_date)
+                arr   = leg.get("arrival", "")
+                dur   = leg.get("durationInMinutes", 0)
+                carriers = leg.get("carriers", {}).get("marketing", [{}])
+                airline  = carriers[0].get("name", "?") if carriers else "?"
+                results.append(_mk("Skyscanner", origin, dest, price,
+                    dep=dep, arr=arr, dur=dur, airline=airline, stops=stops))
+
+            logger.info(f"[SkyScrapper] {origin}→{dest} {dep_date}: {len(results)} results")
+            time.sleep(2.0 + random.uniform(0.3, 0.7))
+            return results
         except Exception as e:
-            logger.warning(f"[SerpAPI] {origin}→{dest}: {e}"); return []
+            logger.warning(f"[SkyScrapper] {origin}→{dest} {dep_date}: {e}")
+            return []
 
 
 class AviasalesScraper:
     """Aviasales cached prices. Free fallback."""
-    V3  = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
-    V1  = "https://api.travelpayouts.com/v1/prices/cheap"
-    SPE = "https://api.travelpayouts.com/aviasales/v3/get_special_offers"
+    V1 = "https://api.travelpayouts.com/v1/prices/cheap"
+    V3 = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
 
     def __init__(self):
-        self.token = os.getenv("AVIASALES_TOKEN","")
+        self.token = os.environ.get("AVIASALES_TOKEN", "")
         self.s = requests.Session()
         self.s.headers["User-Agent"] = "FlightScanner/2.0"
 
@@ -340,9 +225,9 @@ class AviasalesScraper:
         return p
 
     def search(self, origin, dest, dep_date):
-        r = self._v3(origin, dest, dep_date)
-        if not r: r = self._v1(origin, dest, dep_date[:7])
-        return r
+        res = self._v3(origin, dest, dep_date)
+        if not res: res = self._v1(origin, dest, dep_date[:7])
+        return res
 
     def _v3(self, o, d, dep):
         try:
@@ -358,7 +243,7 @@ class AviasalesScraper:
                 res.append(_mk("Aviasales",o,d,round(p*ILS_PER_USD),dep=dep2,
                     ret_dep=f.get("return_at",""),dur=f.get("duration",0),
                     airline=f.get("airline","?"),stops=f.get("transfers",0)))
-            time.sleep(1.0); return res
+            time.sleep(0.8); return res
         except Exception as e:
             logger.warning(f"[Av v3] {e}"); return []
 
@@ -376,51 +261,71 @@ class AviasalesScraper:
                 dep2 = f.get("departure_at",month+"-01T00:00:00")
                 res.append(_mk("Aviasales",o,d,round(p*ILS_PER_USD),dep=dep2,
                     dur=f.get("duration",0),airline=f.get("airline","?"),stops=f.get("transfers",0)))
-            time.sleep(1.0); return res
+            time.sleep(0.8); return res
         except Exception as e:
             logger.warning(f"[Av v1] {e}"); return []
 
-    def specials(self, origin):
+
+# Expose for main.py diagnostics
+class SkyscannerCrawlio:
+    def __init__(self): self._ok = False
+    def search(self, *a): return []
+
+class SkyscannerElisLab:
+    def __init__(self): self._ok = False
+    def search(self, *a): return []
+
+class FlightsScraperSky:
+    def __init__(self): self._ok = SkyScrapper().key != ""
+    def search(self, o, d, dep): return SkyScrapper().search(o, d, dep)
+
+class SerpAPIFlights:
+    def __init__(self):
+        self.key  = os.environ.get("SERPAPI_KEY","")
+        self._ok  = bool(self.key)
+        self.session = requests.Session()
+
+    def search(self, origin, dest, dep_date):
+        if not self._ok: return []
         try:
-            r = self.s.get(self.SPE, params=self._p({
-                "origin":origin,"direct":"false","currency":"usd","limit":100,"market":"il"}), timeout=15)
-            r.raise_for_status()
-            res = []
-            for f in r.json().get("data",[]):
-                p = float(f.get("price",0))
-                if p<=0 or f.get("transfers",0)>1: continue
-                dep2 = f.get("departure_at","")
-                res.append(_mk("Aviasales",origin,f.get("destination","?"),round(p*ILS_PER_USD),
-                    dep=dep2,ret_dep=f.get("return_at",""),dur=f.get("duration",0),
-                    airline=f.get("airline","?"),stops=f.get("transfers",0)))
-            return res
+            r = self.session.get("https://serpapi.com/search", params={
+                "engine":"google_flights","departure_id":origin,"arrival_id":dest,
+                "outbound_date":dep_date,"travel_class":1,"stops":2,
+                "currency":"ILS","hl":"iw","api_key":self.key}, timeout=20)
+            if r.status_code==429: self._ok=False; return []
+            data = r.json()
+            if "error" in data:
+                if any(w in data["error"].lower() for w in ["credit","quota","limit"]):
+                    self._ok=False
+                return []
+            res=[]
+            for f in (data.get("best_flights",[])+data.get("other_flights",[])):
+                price=f.get("price",0)
+                if not price: continue
+                legs=f.get("flights",[]); stops=len(legs)-1
+                if stops>1: continue
+                dep=legs[0].get("departure_airport",{}).get("time",dep_date) if legs else dep_date
+                arr=legs[-1].get("arrival_airport",{}).get("time","") if legs else ""
+                res.append(_mk("Google Flights",origin,dest,price,dep=dep,arr=arr,
+                    dur=f.get("total_duration",0),airline=legs[0].get("airline","?") if legs else "?",stops=stops))
+            time.sleep(2.0); return res
         except Exception as e:
-            logger.warning(f"[Av specials] {e}"); return []
+            logger.warning(f"[SerpAPI] {e}"); return []
 
 
 def scan_destinations(dest_list):
-    crawlio = SkyscannerCrawlio()
-    elis    = SkyscannerElisLab()
-    sky     = FlightsScraperSky()
-    serp    = SerpAPIFlights()
-    av      = AviasalesScraper()
-    dates   = search_dates()
+    sky   = SkyScrapper()
+    av    = AviasalesScraper()
+    serp  = SerpAPIFlights()
+    dates = search_dates()
     dest_map   = {d["code"]:d["name"] for d in dest_list}
     dest_codes = {d["code"] for d in dest_list if d["code"]!="TLV"}
 
-    logger.info(f"APIs active: Crawlio={'✅' if crawlio._ok else '❌'} | ElisLab={'✅' if elis._ok else '❌'} | FlightsSky={'✅' if sky._ok else '❌'} | SerpAPI={'✅' if serp._ok else '❌'} | Aviasales=✅")
-    logger.info(f"Dates: {dates[0]}→{dates[-1]} ({len(dates)} windows) | Destinations: {len(dest_list)}")
+    logger.info(f"SkyScrapper API: {'✅ ACTIVE' if sky._ok else '❌ NO KEY'}")
+    logger.info(f"SerpAPI: {'✅' if serp._ok else '❌'}")
+    logger.info(f"Dates: {dates[0]}→{dates[-1]} ({len(dates)} windows)")
 
     all_results = []
-
-    # Bulk specials
-    specials = av.specials("TLV")
-    matching = [f for f in specials if f["destination"] in dest_codes]
-    for f in matching:
-        f["dest_name"] = dest_map.get(f["destination"], f["destination"])
-        f.setdefault("window_label", f.get("departure","")[:10])
-    all_results.extend(matching)
-    logger.info(f"Aviasales specials: {len(matching)} matching")
 
     for dest in dest_list:
         code = dest["code"]
@@ -432,17 +337,16 @@ def scan_destinations(dest_list):
             if months_only and int(dep_date[5:7]) not in months_only:
                 continue
 
-            # Try all RapidAPI sources, collect from all
-            results = []
-            results += crawlio.search("TLV", code, dep_date)
-            results += elis.search("TLV", code, dep_date)
-            results += sky.search("TLV", code, dep_date)
+            # Sky Scrapper (Skyscanner) is primary
+            results = sky.search("TLV", code, dep_date)
 
-            # If all RapidAPI returned nothing, try SerpAPI + Aviasales
+            # SerpAPI (Google Flights) as supplement
             if not results:
-                results += serp.search("TLV", code, dep_date)
+                results = serp.search("TLV", code, dep_date)
+
+            # Aviasales as last resort
             if not results:
-                results += av.search("TLV", code, dep_date)
+                results = av.search("TLV", code, dep_date)
 
             for f in results:
                 f["dest_name"]    = dest["name"]
@@ -450,14 +354,14 @@ def scan_destinations(dest_list):
             all_results.extend(results)
             found += len(results)
 
-        logger.info(f"  TLV→{code}: {found}")
+        logger.info(f"  TLV→{code}: {found} results")
 
-    logger.info(f"Total: {len(all_results)} verified results")
+    logger.info(f"Total verified: {len(all_results)}")
     return all_results
 
 
 def scan_all_flights():
-    logger.info("🛫 Full scan — 3 RapidAPI sources + SerpAPI + Aviasales")
+    logger.info("🛫 Full scan — Sky Scrapper (apiheya) + SerpAPI + Aviasales")
     return scan_destinations(DESTINATIONS)
 
 
