@@ -19,6 +19,7 @@ jobs:
       SMTP_PORT:        "587"
       RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
       SERPAPI_KEY:      ${{ secrets.SERPAPI_KEY }}
+      RAPIDAPI_KEY:     ${{ secrets.RAPIDAPI_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -26,17 +27,5 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-
-      - name: Diagnose SerpAPI
-        run: cd src && python -u diag.py
-
-      - name: Commit diagnostic result
-        run: |
-          git config user.email "flight-scanner@github.com"
-          git config user.name "Flight Scanner Bot"
-          git add src/diag_result.txt || true
-          git commit -m "diag: serpapi check result" || true
-          git push || true
-
       - name: Run Scanner
         run: cd src && python -u main.py
