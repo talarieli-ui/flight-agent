@@ -195,9 +195,10 @@ class SkypikerScraper(FlightScraper):
                     "source": "Kiwi.com",
                     "origin": origin, "destination": dest,
                     "price_ils": round(f.get("price", 0)),
-                    "departure": dep,           # outbound datetime
-                    "arrival":   arr,           # outbound arrival datetime
-                    "return_departure": "",     # inbound – not available in one-way search
+                    "price_verified": True,     # price came from real API
+                    "departure": dep,
+                    "arrival":   arr,
+                    "return_departure": "",
                     "return_arrival":   "",
                     "duration_min": f.get("duration", {}).get("total", 0) // 60,
                     "stops": 0,
