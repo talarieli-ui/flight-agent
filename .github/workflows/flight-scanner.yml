@@ -27,54 +27,68 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
 
-      - name: Check SerpAPI quota and test one flight
+      - name: Diagnose and save results
         run: |
           python3 << 'SCRIPT'
-          import requests, os, json
+import requests, os, json
 
-          key = os.environ.get("SERPAPI_KEY","")
-          print(f"SERPAPI_KEY set: {bool(key)} ({len(key)} chars)")
+key = os.environ.get("SERPAPI_KEY","")
+out = []
+out.append(f"SERPAPI_KEY length: {len(key)}")
 
-          # Check account
-          r = requests.get("https://serpapi.com/account", params={"api_key": key}, timeout=10)
-          print(f"Account status: {r.status_code}")
-          try:
-              d = r.json()
-              print(f"Plan: {d.get('plan_name','?')}")
-              print(f"Searches this month: {d.get('this_month_usage','?')}")
-              print(f"Searches remaining: {d.get('searches_left','?')}")
-          except:
-              print(r.text[:200])
+# Check account
+try:
+    r = requests.get("https://serpapi.com/account",
+        params={"api_key": key}, timeout=10)
+    d = r.json()
+    out.append(f"Account HTTP: {r.status_code}")
+    out.append(f"Plan: {d.get('plan_name','?')}")
+    out.append(f"Searches this month: {d.get('this_month_usage','?')}")
+    out.append(f"Searches left: {d.get('searches_left','?')}")
+    if "error" in d:
+        out.append(f"Account error: {d['error']}")
+except Exception as e:
+    out.append(f"Account check failed: {e}")
 
-          # Test one real search
-          print()
-          print("--- Test: TLV->ATH 2026-07-05 ---")
-          r2 = requests.get("https://serpapi.com/search", params={
-              "engine": "google_flights",
-              "departure_id": "TLV", "arrival_id": "ATH",
-              "outbound_date": "2026-07-05",
-              "travel_class": 1, "stops": 2,
-              "currency": "ILS", "hl": "iw",
-              "api_key": key,
-          }, timeout=20)
-          print(f"Search status: {r2.status_code}")
-          try:
-              d2 = r2.json()
-              if "error" in d2:
-                  print(f"ERROR: {d2['error']}")
-              else:
-                  flights = d2.get("best_flights", []) + d2.get("other_flights", [])
-                  print(f"Flights found: {len(flights)}")
-                  for f in flights[:3]:
-                      price = f.get("price",0)
-                      legs  = f.get("flights",[])
-                      stops = len(legs)-1
-                      dep   = legs[0].get("departure_airport",{}).get("time","?") if legs else "?"
-                      print(f"  ₪{price} | stops={stops} | dep={dep} | airline={legs[0].get('airline','?') if legs else '?'}")
-          except Exception as e:
-              print(f"Parse error: {e}")
-              print(r2.text[:300])
-          SCRIPT
+# Test one search
+try:
+    r2 = requests.get("https://serpapi.com/search", params={
+        "engine": "google_flights",
+        "departure_id": "TLV", "arrival_id": "ATH",
+        "outbound_date": "2026-07-10",
+        "travel_class": 1, "stops": 2,
+        "currency": "ILS", "hl": "iw",
+        "api_key": key,
+    }, timeout=20)
+    d2 = r2.json()
+    out.append(f"Search HTTP: {r2.status_code}")
+    if "error" in d2:
+        out.append(f"Search error: {d2['error']}")
+    else:
+        flights = d2.get("best_flights",[]) + d2.get("other_flights",[])
+        out.append(f"Flights found: {len(flights)}")
+        for f in flights[:5]:
+            price = f.get("price",0)
+            legs  = f.get("flights",[])
+            dep   = legs[0].get("departure_airport",{}).get("time","?") if legs else "?"
+            airline = legs[0].get("airline","?") if legs else "?"
+            out.append(f"  price=ILS{price} stops={len(legs)-1} dep={dep} airline={airline}")
+except Exception as e:
+    out.append(f"Search failed: {e}")
+
+result = "\n".join(out)
+print(result)
+with open("diag_output.txt","w") as f:
+    f.write(result)
+'SCRIPT'
+
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diag-${{ github.run_number }}
+          path: diag_output.txt
+          retention-days: 1
 
       - name: Run Scanner
         run: cd src && python -u main.py
