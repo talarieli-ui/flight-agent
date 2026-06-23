@@ -27,5 +27,63 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
 
+      - name: 🔍 API Diagnostics
+        run: |
+          python3 -c "
+import requests, json
+
+# Test Aviasales v3 prices_for_dates
+print('--- Aviasales v3 TLV->KGS 2026-07-10 ---')
+r = requests.get('https://api.travelpayouts.com/aviasales/v3/prices_for_dates',
+    params={'origin':'TLV','destination':'KGS','departure_at':'2026-07-10',
+            'direct':'false','limit':5,'currency':'usd','market':'il'}, timeout=15)
+print('status:', r.status_code)
+try:
+    d = r.json()
+    print('success:', d.get('success'))
+    print('count:', len(d.get('data',[])))
+    for f in d.get('data',[])[:3]:
+        print(' price=\$' + str(f.get('price',0)), 'stops='+str(f.get('transfers',0)),
+              'dep='+str(f.get('departure_at',''))[:10], 'airline='+str(f.get('airline','')))
+except Exception as e:
+    print('parse error:', e)
+    print(r.text[:200])
+
+# Test Aviasales v1 cheap
+print()
+print('--- Aviasales v1 cheap TLV->KGS 2026-07 ---')
+r2 = requests.get('https://api.travelpayouts.com/v1/prices/cheap',
+    params={'origin':'TLV','destination':'KGS','depart_date':'2026-07',
+            'currency':'usd','page':1}, timeout=15)
+print('status:', r2.status_code)
+try:
+    d2 = r2.json()
+    print('success:', d2.get('success'))
+    data2 = d2.get('data',{}).get('KGS',{})
+    print('count:', len(data2))
+    for k,v in list(data2.items())[:3]:
+        print(' price=\$'+str(v.get('price',0)), 'transfers='+str(v.get('transfers',0)), 'dep='+str(v.get('departure_at',''))[:10])
+except Exception as e:
+    print('parse error:', e)
+    print(r2.text[:200])
+
+# Test special offers
+print()
+print('--- Travelpayouts special offers TLV ---')
+r3 = requests.get('https://api.travelpayouts.com/aviasales/v3/get_special_offers',
+    params={'origin':'TLV','direct':'false','currency':'usd','limit':10,'market':'il'}, timeout=15)
+print('status:', r3.status_code)
+try:
+    d3 = r3.json()
+    print('success:', d3.get('success'))
+    print('count:', len(d3.get('data',[])))
+    for f in d3.get('data',[])[:3]:
+        print(' dest='+str(f.get('destination','')), 'price=\$'+str(f.get('price',0)),
+              'stops='+str(f.get('transfers',0)), 'dep='+str(f.get('departure_at',''))[:10])
+except Exception as e:
+    print('parse error:', e)
+    print(r3.text[:200])
+"
+
       - name: ✈️ Run Scanner
         run: cd src && python -u main.py
