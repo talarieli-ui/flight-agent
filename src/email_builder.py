@@ -349,12 +349,18 @@ def build_email_html(
     <a href="https://secretflights.co.il/last-minute-flights/" target="_blank" style="background:#1a1a2e;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🔒 טיסות סודיות</a>
   </td></tr>
 
-  <!-- ── שורה 3: חברות תעופה ישראליות ישירות ── -->
+  <!-- ── שורה 3: חברות תעופה ישירות ── -->
   <tr><td style="padding:4px 0 4px;text-align:center;">
-    <p style="color:#94a3b8;font-size:11px;margin:0 0 8px;font-weight:600;">✈️ חברות תעופה ישראליות</p>
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 8px;font-weight:600;">✈️ חברות תעופה — הזמנה ישירה</p>
     <a href="https://www.elal.com/he-il/israel" target="_blank" style="background:#003399;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 אל על</a>
     <a href="https://www.israir.co.il/Flights/FlightSearch" target="_blank" style="background:#003087;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ישראייר</a>
     <a href="https://www.arkia.com/he/flights" target="_blank" style="background:#e8000d;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ארקיע</a>
+    <a href="https://booking.bluebirdair.com/BOOK/outbound" target="_blank" style="background:#1a6eb5;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🐦 Bluebird</a>
+    <a href="https://en.aegeanair.com/flights/?origin=TLV" target="_blank" style="background:#002f6c;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇬🇷 Aegean</a>
+    <a href="https://www.skyexpress.gr/en/flights/?from=TLV" target="_blank" style="background:#0099cc;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇬🇷 Sky Express</a>
+    <a href="https://wizzair.com/#/booking/select-flight/TLV" target="_blank" style="background:#c6007e;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">💜 Wizz Air</a>
+    <a href="https://www.ryanair.com/en/booking/home" target="_blank" style="background:#073590;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🟦 Ryanair</a>
+    <a href="https://www.easyjet.com/en/search" target="_blank" style="background:#ff6600;color:#fff;padding:7px 13px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🟠 easyJet</a>
   </td></tr>
 
   <!-- ── שורה 4: קבוצות פייסבוק ── -->
