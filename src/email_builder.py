@@ -326,7 +326,7 @@ def build_email_html(
     <a href="https://www.jetradar.com/flights/TLV-/" style="background:#1a9b6c;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Jetradar</a>
     <a href="https://www.ryanair.com/en/cheap-flights/from/tel-aviv" style="background:#073590;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Ryanair</a>
     <a href="https://www.expedia.com/Flights-Search?trip=oneway&leg1=from%3ATLV%2Cto%3Aanywhere&passengers=adults%3A1&options=cabinclass%3Aeconomy%2Cmaxhops%3A0" style="background:#ffcc00;color:#000;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Expedia</a>
-    <a href="https://www.edreams.com/flights/#TLV/anywhere//{d_today}/1adults/0inf/0children/economy" style="background:#0073e6;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">eDreams</a>
+    <a href="https://www.edreams.com/flights/#TLV/anywhere/1adults/0inf/0children/economy" style="background:#0073e6;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">eDreams</a>
     <a href="https://www.walla-tours.co.il/catalog/flights?origin=TLV" style="background:#cc0000;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">וואלה טורס</a>
   </td></tr>
 
