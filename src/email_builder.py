@@ -174,7 +174,8 @@ def _row(f: dict, rank: int) -> str:
       </td>
       <td style="padding:10px 6px;text-align:center;vertical-align:middle;">
         <span style="background:{color};color:#fff;padding:5px 12px;border-radius:20px;font-weight:700;font-size:14px;white-space:nowrap;">₪{price:,}</span>
-        <div style="font-size:10px;color:#94a3b8;margin-top:3px;">ישיר ✅</div>
+        <div style="font-size:9px;color:#94a3b8;margin-top:3px;">ישיר ✅</div>
+        <div style="font-size:9px;color:#f59e0b;margin-top:1px;">* אמת באתר</div>
       </td>
       <td style="padding:10px 8px;vertical-align:middle;text-align:right;">{outbound_cell}</td>
       <td style="padding:10px 8px;vertical-align:middle;text-align:right;">{return_cell}</td>
@@ -279,9 +280,12 @@ def build_email_html(
         <tbody>{rows}</tbody>
       </table>
     </div>
-    <p style="color:#94a3b8;font-size:10px;margin:6px 0 0;text-align:right;">
-      * "הזמן ↗" פותח את אתר ההזמנה עם התאריך והיעד מולאים מראש
-    </p>
+    <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-top:8px;">
+      <p style="margin:0;color:#92400e;font-size:12px;">
+        ⚠️ <strong>שים לב:</strong> המחירים המוצגים הם הערכה בלבד — <strong>המחיר הסופי נקבע באתר ההזמנה</strong>.
+        לחיצה על "הזמן ↗" תפתח את האתר עם הטיסה והתאריך מולאים מראש, שם תראה את המחיר המדויק.
+      </p>
+    </div>
   </td></tr>
 
   {reply_section}
