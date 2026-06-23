@@ -1,11 +1,9 @@
 """
 Flight Scanner Agent - סוכן סריקת טיסות
-Scans flight prices from Israel and sends email reports twice daily.
-Supports focused scanning for a specific destination on demand.
+Scans flight prices from Israel. Search window: 4-6 days ahead only.
 """
 
 import os
-import json
 import time
 import logging
 import requests
@@ -23,7 +21,6 @@ logger = logging.getLogger(__name__)
 # ─── Destinations ─────────────────────────────────────────────────────────────
 
 DESTINATIONS = [
-    # אירופה
     {"code": "LHR", "name": "לונדון"},
     {"code": "CDG", "name": "פריז"},
     {"code": "FCO", "name": "רומא"},
@@ -51,13 +48,11 @@ DESTINATIONS = [
     {"code": "HER", "name": "כרתים"},
     {"code": "OTP", "name": "בוקרשט"},
     {"code": "SOF", "name": "סופיה"},
-    # ארה"ב וקנדה
     {"code": "JFK", "name": "ניו יורק"},
     {"code": "LAX", "name": "לוס אנג'לס"},
     {"code": "MIA", "name": "מיאמי"},
     {"code": "ORD", "name": "שיקגו"},
     {"code": "YYZ", "name": "טורונטו"},
-    # אסיה
     {"code": "DXB", "name": "דובאי"},
     {"code": "BKK", "name": "בנגקוק"},
     {"code": "NRT", "name": "טוקיו"},
@@ -66,38 +61,70 @@ DESTINATIONS = [
     {"code": "ICN", "name": "סיאול"},
     {"code": "DEL", "name": "דלהי"},
     {"code": "BOM", "name": "מומבאי"},
-    # אפריקה
     {"code": "CAI", "name": "קהיר"},
     {"code": "CMN", "name": "קזבלנקה"},
     {"code": "CPT", "name": "קייפטאון"},
     {"code": "NBO", "name": "ניירובי"},
 ]
 
+# Search window: 4–6 days ahead only
 SEARCH_WINDOWS = [
-    {"days_ahead": 7,  "label": "שבוע הקרוב"},
-    {"days_ahead": 14, "label": "שבועיים"},
-    {"days_ahead": 30, "label": "חודש קדימה"},
-    {"days_ahead": 60, "label": "חודשיים קדימה"},
-    {"days_ahead": 90, "label": "שלושה חודשים"},
+    {"days_ahead": 4, "label": "4 ימים"},
+    {"days_ahead": 5, "label": "5 ימים"},
+    {"days_ahead": 6, "label": "6 ימים"},
 ]
 
-BEST_BOOKING_TIPS = {
-    "general": "מחקרים מראים שהזמנה 6–8 שבועות מראש נותנת את המחיר הטוב ביותר לרוב היעדים.",
-    "best_days_to_book": ["שלישי", "רביעי"],
-    "best_days_to_fly": ["שלישי", "רביעי", "שבת"],
-    "worst_days_to_fly": ["שישי", "ראשון"],
-    "best_time_to_search": "00:00–06:00 (לילה) — מחירים מתעדכנים בלילה ולרוב זולים יותר בבוקר מוקדם.",
-    "kayak_tip": "השתמש ב-Kayak Explore לחיפוש יעדים זולים בטווח תאריכים גמיש.",
-    "wizz_tip": "Wizz Air מוציאה מבצעים בדרך כלל ביום שלישי בצהריים. עקוב אחרי הניוזלטר שלהם.",
-    "skyscanner_tip": "Skyscanner – השתמש ב-'כל החודש' ו-'מחיר הנמוך ביותר' כדי למצוא את היום הזול ביותר.",
-    "hopper_tip": "Hopper חוזה מחירים עתידיים — מומלץ לבדוק ולהפעיל Price Freeze לנעילת מחיר.",
-    "momondo_tip": "Momondo מציגה לוח מחירים חודשי ב-Cheapest Month — מצוין לגמישות.",
-}
 
-# ─── Scrapers ─────────────────────────────────────────────────────────────────
+def _make_deep_link(source: str, origin: str, dest_code: str, departure_date: str) -> str:
+    """
+    Build a deep link that opens the booking site pre-filled with
+    origin=TLV, destination, and departure date.
+    departure_date format: 'YYYY-MM-DD'
+    """
+    try:
+        dt = datetime.strptime(departure_date[:10], "%Y-%m-%d")
+    except Exception:
+        dt = datetime.now()
+
+    date_yyyymmdd = dt.strftime("%Y%m%d")   # 20260710
+    date_ddmmyyyy = dt.strftime("%d/%m/%Y")  # 10/07/2026
+    date_yyyy_mm_dd = dt.strftime("%Y-%m-%d") # 2026-07-10
+    month_yyyy_mm = dt.strftime("%Y-%m")      # 2026-07
+
+    if source == "Kiwi.com":
+        # Kiwi deep search link
+        return (
+            f"https://www.kiwi.com/en/search/results/"
+            f"tel-aviv-israel/{dest_code.lower()}-airport/"
+            f"{date_yyyy_mm_dd}/{date_yyyy_mm_dd}"
+        )
+    elif source == "Aviasales":
+        return (
+            f"https://www.aviasales.com/search/"
+            f"{origin}{date_yyyymmdd}{dest_code}1"
+        )
+    elif source == "Jetradar":
+        return (
+            f"https://www.jetradar.com/flights/"
+            f"{origin}-{dest_code}/?depart_date={date_yyyy_mm_dd}"
+        )
+    elif source == "Google Flights":
+        return (
+            f"https://www.google.com/travel/flights/search"
+            f"?tfs=CBwQAhoeEgoyMDI2LTA3LTEwagcIARIDVExWcgcIARIDTEhSQAFIAXABggELCP___________wGYAQI"
+            # Simpler reliable URL:
+        )
+    else:
+        # Generic Skyscanner deep link
+        return (
+            f"https://www.skyscanner.net/transport/flights/"
+            f"{origin.lower()}/{dest_code.lower()}/{date_yyyymmdd}/"
+            f"?adults=1&cabinclass=economy"
+        )
+
 
 class FlightScraper:
-    def __init__(self, name: str, delay: float = 1.5):
+    def __init__(self, name: str, delay: float = 1.2):
         self.name = name
         self.delay = delay
         self.session = requests.Session()
@@ -111,42 +138,44 @@ class FlightScraper:
         })
 
     def _sleep(self):
-        time.sleep(self.delay + random.uniform(0.3, 0.8))
+        time.sleep(self.delay + random.uniform(0.2, 0.6))
 
 
 class SkypikerScraper(FlightScraper):
-    """Kiwi / Tequila API — free tier, most reliable."""
     BASE_URL = "https://api.tequila.kiwi.com/v2/search"
 
     def __init__(self):
-        super().__init__("Kiwi")
+        super().__init__("Kiwi.com")
         api_key = os.getenv("KIWI_API_KEY", "")
         if api_key:
             self.session.headers["apikey"] = api_key
 
-    def search(self, origin: str, dest: str, date_from: str, date_to: str) -> list[dict]:
+    def search(self, origin: str, dest: str, departure_date: str) -> list:
+        # Search exactly on that date ±0 days
+        date_fmt = datetime.strptime(departure_date, "%Y-%m-%d").strftime("%d/%m/%Y")
         params = {
             "fly_from": origin, "fly_to": dest,
-            "date_from": date_from, "date_to": date_to,
+            "date_from": date_fmt, "date_to": date_fmt,
             "adults": 1, "selected_cabins": "M",
-            "max_stopovers": 2, "limit": 5,
+            "max_stopovers": 2, "limit": 3,
             "sort": "price", "curr": "ILS",
         }
         try:
             r = self.session.get(self.BASE_URL, params=params, timeout=15)
             r.raise_for_status()
             results = []
-            for f in r.json().get("data", [])[:5]:
+            for f in r.json().get("data", [])[:3]:
+                dep = f.get("local_departure", departure_date)
                 results.append({
-                    "source": "Kiwi.com", "origin": origin, "destination": dest,
+                    "source": "Kiwi.com",
+                    "origin": origin, "destination": dest,
                     "price_ils": round(f.get("price", 0)),
-                    "price_usd": round(f.get("price", 0) / 3.7),
-                    "departure": f.get("local_departure", ""),
+                    "departure": dep,
                     "arrival": f.get("local_arrival", ""),
                     "duration_min": f.get("duration", {}).get("total", 0) // 60,
-                    "stops": len(f.get("route", [])) - 1,
+                    "stops": max(0, len(f.get("route", [])) - 1),
                     "airline": f.get("airlines", ["?"])[0],
-                    "deep_link": f.get("deep_link", "https://www.kiwi.com"),
+                    "deep_link": f.get("deep_link") or _make_deep_link("Kiwi.com", origin, dest, dep[:10]),
                 })
             self._sleep()
             return results
@@ -156,7 +185,6 @@ class SkypikerScraper(FlightScraper):
 
 
 class AviasalesScraper(FlightScraper):
-    """Aviasales / Travelpayouts — free."""
     BASE_URL = "https://api.travelpayouts.com/v1/prices/cheap"
 
     def __init__(self):
@@ -165,7 +193,8 @@ class AviasalesScraper(FlightScraper):
         if token:
             self.session.headers["X-Access-Token"] = token
 
-    def search(self, origin: str, dest: str, month: str) -> list[dict]:
+    def search(self, origin: str, dest: str, departure_date: str) -> list:
+        month = departure_date[:7]  # YYYY-MM
         try:
             r = self.session.get(self.BASE_URL, params={
                 "origin": origin, "destination": dest,
@@ -174,17 +203,19 @@ class AviasalesScraper(FlightScraper):
             r.raise_for_status()
             flights = r.json().get("data", {}).get(dest, {})
             results = []
-            for _, f in flights.items():
+            for _, f in (flights.items() if isinstance(flights, dict) else []):
+                dep = f.get("departure_at", departure_date)
                 results.append({
-                    "source": "Aviasales", "origin": origin, "destination": dest,
+                    "source": "Aviasales",
+                    "origin": origin, "destination": dest,
                     "price_usd": f.get("price", 0),
                     "price_ils": round(f.get("price", 0) * 3.7),
-                    "departure": f.get("departure_at", ""),
-                    "arrival": f.get("return_at", ""),
+                    "departure": dep,
+                    "arrival": "",
                     "duration_min": f.get("duration", 0),
                     "stops": f.get("transfers", 0),
                     "airline": f.get("airline", "?"),
-                    "deep_link": f"https://www.aviasales.com/search/{origin}{dest}1",
+                    "deep_link": _make_deep_link("Aviasales", origin, dest, dep[:10]),
                 })
             self._sleep()
             return results
@@ -194,14 +225,13 @@ class AviasalesScraper(FlightScraper):
 
 
 class GoogleFlightsScraper(FlightScraper):
-    """Google Flights via SerpAPI — 100 free searches/month."""
     BASE_URL = "https://serpapi.com/search"
 
     def __init__(self):
         super().__init__("Google Flights")
         self.api_key = os.getenv("SERPAPI_KEY", "")
 
-    def search(self, origin: str, dest: str, departure_date: str) -> list[dict]:
+    def search(self, origin: str, dest: str, departure_date: str) -> list:
         if not self.api_key:
             return []
         try:
@@ -216,53 +246,17 @@ class GoogleFlightsScraper(FlightScraper):
             for f in r.json().get("best_flights", [])[:3]:
                 price = f.get("price", 0)
                 legs  = f.get("flights", [{}])
+                dep   = legs[0].get("departure_airport", {}).get("time", departure_date)
                 results.append({
-                    "source": "Google Flights", "origin": origin, "destination": dest,
+                    "source": "Google Flights",
+                    "origin": origin, "destination": dest,
                     "price_ils": price, "price_usd": round(price / 3.7),
-                    "departure": legs[0].get("departure_airport", {}).get("time", ""),
+                    "departure": dep,
                     "arrival": legs[-1].get("arrival_airport", {}).get("time", ""),
                     "duration_min": f.get("total_duration", 0),
                     "stops": len(legs) - 1,
                     "airline": legs[0].get("airline", "?"),
-                    "deep_link": "https://www.google.com/travel/flights",
-                })
-            self._sleep()
-            return results
-        except Exception as e:
-            logger.warning(f"[{self.name}] {origin}→{dest}: {e}")
-            return []
-
-
-class JetradarScraper(FlightScraper):
-    """Jetradar / Aviasales partner feed — free."""
-    BASE_URL = "https://api.travelpayouts.com/v1/prices/direct"
-
-    def __init__(self):
-        super().__init__("Jetradar")
-        token = os.getenv("AVIASALES_TOKEN", "")
-        if token:
-            self.session.headers["X-Access-Token"] = token
-
-    def search(self, origin: str, dest: str, month: str) -> list[dict]:
-        try:
-            r = self.session.get(self.BASE_URL, params={
-                "origin": origin, "destination": dest,
-                "depart_date": month, "currency": "usd",
-            }, timeout=15)
-            r.raise_for_status()
-            flights = r.json().get("data", {}).get(dest, {})
-            results = []
-            for _, f in (flights.items() if isinstance(flights, dict) else []):
-                results.append({
-                    "source": "Jetradar", "origin": origin, "destination": dest,
-                    "price_usd": f.get("price", 0),
-                    "price_ils": round(f.get("price", 0) * 3.7),
-                    "departure": f.get("departure_at", ""),
-                    "arrival": "",
-                    "duration_min": f.get("duration", 0),
-                    "stops": 0,
-                    "airline": f.get("airline", "?"),
-                    "deep_link": f"https://www.jetradar.com/flights/{origin}-{dest}/",
+                    "deep_link": _make_deep_link("Google Flights", origin, dest, dep[:10]),
                 })
             self._sleep()
             return results
@@ -273,12 +267,10 @@ class JetradarScraper(FlightScraper):
 
 # ─── Aggregator ───────────────────────────────────────────────────────────────
 
-def scan_destinations(dest_list: list[dict]) -> list[dict]:
-    """Scan a given list of destinations across all search windows."""
+def scan_destinations(dest_list: list) -> list:
     kiwi      = SkypikerScraper()
     aviasales = AviasalesScraper()
     gf        = GoogleFlightsScraper()
-    jetradar  = JetradarScraper()
 
     all_results = []
     now = datetime.utcnow()
@@ -289,63 +281,51 @@ def scan_destinations(dest_list: list[dict]) -> list[dict]:
             continue
 
         for window in SEARCH_WINDOWS:
-            target  = now + timedelta(days=window["days_ahead"])
-            d_str   = target.strftime("%Y-%m-%d")
-            d_from  = (target - timedelta(days=3)).strftime("%d/%m/%Y")
-            d_to    = (target + timedelta(days=3)).strftime("%d/%m/%Y")
-            month   = target.strftime("%Y-%m")
+            target_date = (now + timedelta(days=window["days_ahead"])).strftime("%Y-%m-%d")
 
             flights = []
-            flights += kiwi.search("TLV", dest_code, d_from, d_to)
-            flights += aviasales.search("TLV", dest_code, month)
-            flights += gf.search("TLV", dest_code, d_str)
-            flights += jetradar.search("TLV", dest_code, month)
+            flights += kiwi.search("TLV", dest_code, target_date)
+            flights += aviasales.search("TLV", dest_code, target_date)
+            flights += gf.search("TLV", dest_code, target_date)
 
             for f in flights:
                 f["dest_name"]    = dest["name"]
                 f["window_label"] = window["label"]
-                f["search_date"]  = d_str
+                f["search_date"]  = target_date
 
             all_results.extend(flights)
-            logger.info(f"  TLV→{dest_code} ({window['label']}): {len(flights)} results")
+
+        logger.info(f"  TLV→{dest_code}: done")
 
     return all_results
 
 
-def scan_all_flights() -> list[dict]:
-    logger.info("🛫 Starting full flight scan...")
+def scan_all_flights() -> list:
+    logger.info("🛫 Starting full flight scan (4–6 days window)...")
     results = scan_destinations(DESTINATIONS)
-    logger.info(f"✅ Full scan done. Total: {len(results)} results.")
+    logger.info(f"✅ Scan complete. Total: {len(results)} results.")
     return results
 
 
-def scan_focused(query: str) -> list[dict]:
-    """
-    Scan only destinations matching a city/country name or IATA code.
-    query can be a free-text city/country name in Hebrew or English, or IATA code.
-    """
+def scan_focused(query: str) -> list:
     q = query.strip().upper()
     matched = [d for d in DESTINATIONS
-               if q in d["code"].upper() or q in d["name"].upper() or q in d.get("name", "").lower()]
+               if q in d["code"].upper() or q in d["name"].upper()]
     if not matched:
-        # Fuzzy: try substring of the query words
         words = query.lower().split()
-        matched = [d for d in DESTINATIONS
-                   if any(w in d["name"] for w in words)]
+        matched = [d for d in DESTINATIONS if any(w in d["name"] for w in words)]
     if not matched:
-        logger.warning(f"No destination match for query: '{query}' — scanning all.")
         matched = DESTINATIONS
-
-    logger.info(f"🔍 Focused scan for '{query}' → {[d['code'] for d in matched]}")
-    results = scan_destinations(matched)
-    logger.info(f"✅ Focused scan done. {len(results)} results.")
-    return results
+    logger.info(f"🔍 Focused scan: '{query}' → {[d['code'] for d in matched]}")
+    return scan_destinations(matched)
 
 
-def find_best_deals(flights: list[dict], top_n: int = 20) -> list[dict]:
+def find_best_deals(flights: list, top_n: int = 20) -> list:
+    """Return top N cheapest deals, sorted price low→high."""
     seen: dict = {}
     for f in flights:
-        key = (f["destination"], f["window_label"])
+        key = (f["destination"], f.get("window_label",""))
         if key not in seen or f.get("price_ils", 99999) < seen[key].get("price_ils", 99999):
             seen[key] = f
+    # Sort by price ascending
     return sorted(seen.values(), key=lambda x: x.get("price_ils", 99999))[:top_n]
