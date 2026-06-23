@@ -60,22 +60,52 @@ def build_deep_link(source: str, origin: str, dest_code: str, departure_date: st
         dt = datetime.now()
     d8 = dt.strftime("%Y%m%d")
     dy = dt.strftime("%Y-%m-%d")
+    # All links are pre-filled with origin, destination, and exact departure date
     links = {
         "Kiwi.com": (
             f"https://www.kiwi.com/en/search/results/"
             f"tel-aviv-israel/{dest_code.lower()}-airport/{dy}/{dy}"
-            f"?adults=1&cabinClass=ECONOMY"
+            f"?adults=1&cabinClass=ECONOMY&directOnly=true"
         ),
-        "Aviasales":      f"https://www.aviasales.com/search/{origin}{d8}{dest_code}1",
-        "Jetradar":       f"https://www.jetradar.com/flights/{origin}-{dest_code}/?depart_date={dy}",
-        "Google Flights": f"https://www.google.com/travel/flights/search?q=flights+from+{origin}+to+{dest_code}+on+{dy}",
-        "FlyAll":         f"https://flyall.club/Flights?origin={origin}&destination={dest_code}&departDate={dy}&adults=1",
-        "MaxTravel":      f"https://www.maxtravel.co.il/flights?origin={origin}&destination={dest_code}&departureDate={dy}&adults=1",
-        "Hulyo":          f"https://www.hulyo.co.il/flights?origin={origin}&dest={dest_code}&date={dy}",
+        "Aviasales": (
+            f"https://www.aviasales.com/search/{origin}{d8}{dest_code}1"
+        ),
+        "Jetradar": (
+            f"https://www.jetradar.com/flights/{origin}-{dest_code}/{dy}/?adults=1&direct=true"
+        ),
+        "Google Flights": (
+            f"https://www.google.com/travel/flights/search"
+            f"?tfs=CBwQARoeEgoyMDI2LTA3LTEwagcIARIDVExWcgcIARIDTEhS"
+            f"&q=direct+flights+from+TLV+to+{dest_code}+on+{dy}"
+        ),
+        "FlyAll": (
+            f"https://flyall.club/Flights"
+            f"?origin={origin}&destination={dest_code}&departDate={dy}&adults=1&direct=true"
+        ),
+        "MaxTravel": (
+            f"https://www.maxtravel.co.il/flights"
+            f"?origin={origin}&destination={dest_code}&departureDate={dy}&adults=1&stops=0"
+        ),
+        "Hulyo": (
+            f"https://www.hulyo.co.il/flights"
+            f"?origin={origin}&dest={dest_code}&date={dy}&direct=1"
+        ),
+        "Expedia": (
+            f"https://www.expedia.com/Flights-Search"
+            f"?trip=oneway&leg1=from%3A{origin}%2Cto%3A{dest_code}%2Cdeparture%3A{d8}TANYT"
+            f"&passengers=adults%3A1&options=cabinclass%3Aeconomy%2Cnopenalty%3AN%2Cmaxhops%3A0"
+        ),
+        "eDreams": (
+            f"https://www.edreams.com/flights/#{origin}-{dest_code}/{dy}/1adults/0inf/0children/economy/0/0/false/0"
+        ),
+        "Skyscanner": (
+            f"https://www.skyscanner.net/transport/flights"
+            f"/{origin.lower()}/{dest_code.lower()}/{d8}/"
+            f"?adults=1&cabinclass=economy&stops=!oneStop,!twoPlusStops"
+        ),
     }
-    return links.get(source,
-        f"https://www.skyscanner.net/transport/flights/{origin.lower()}/{dest_code.lower()}/{d8}/?adults=1&cabinclass=economy"
-    )
+    # Default to Skyscanner with pre-filled params
+    return links.get(source, links["Skyscanner"])
 
 
 def _row(f: dict, rank: int) -> str:
@@ -96,11 +126,22 @@ def _row(f: dict, rank: int) -> str:
     ret_dep_date, ret_dep_time = _fmt_datetime(f.get("return_departure", ""))
     ret_arr_date, ret_arr_time = _fmt_datetime(f.get("return_arrival", ""))
 
-    dep_str = f.get("departure", "")
-    link = build_deep_link(src, origin, code, dep_str[:10] if dep_str else "")
+    dep_str  = f.get("departure", "")
+    dep_date = dep_str[:10] if dep_str else ""
+    # Always build a pre-filled deep link — override any stored empty link
+    link = build_deep_link(src, origin, code, dep_date) if dep_date else "#"
 
-    rk_bg  = "#ffd700" if rank == 1 else "#e2e8f0"
-    rk_col = "#92400e" if rank == 1 else "#475569"
+    # Price alert: RED ring for < ₪500, GOLD for rank 1, default grey
+    price_val = f.get("price_ils", 99999)
+    if price_val < 500:
+        rk_bg  = "#ef4444"   # אדום — מתחת ל-₪500
+        rk_col = "#fff"
+    elif rank == 1:
+        rk_bg  = "#ffd700"   # זהב — מקום ראשון
+        rk_col = "#92400e"
+    else:
+        rk_bg  = "#e2e8f0"
+        rk_col = "#475569"
 
     # Format outbound cell
     outbound_cell = f"""
@@ -217,7 +258,11 @@ def build_email_html(
 
   <tr><td style="padding:20px 0 6px;">
     <h2 style="color:#1e293b;font-size:17px;margin:0 0 4px;">🏆 הטיסות הישירות הזולות ביותר</h2>
-    <p style="color:#64748b;font-size:12px;margin:0 0 12px;">ממוין לפי מחיר ↑ | טווח חיפוש: 3 ימים עד חצי שנה קדימה</p>
+    <div style="display:flex;gap:12px;margin:0 0 12px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:12px;color:#64748b;">ממוין לפי מחיר ↑ | טווח חיפוש: 3 ימים–6 חודשים</span>
+      <span style="background:#ef4444;color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🔴 מתחת ל-₪500</span>
+      <span style="background:#ffd700;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🏆 הזול ביותר</span>
+    </div>
     <div style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;">
       <table width="100%" cellpadding="0" cellspacing="0">
         <thead>
@@ -280,14 +325,27 @@ def build_email_html(
     <a href="https://www.momondo.com/flight-search/Tel-Aviv/Anywhere" style="background:#005580;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Momondo</a>
     <a href="https://www.jetradar.com/flights/TLV-/" style="background:#1a9b6c;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Jetradar</a>
     <a href="https://www.ryanair.com/en/cheap-flights/from/tel-aviv" style="background:#073590;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Ryanair</a>
+    <a href="https://www.expedia.com/Flights-Search?trip=oneway&leg1=from%3ATLV%2Cto%3Aanywhere&passengers=adults%3A1&options=cabinclass%3Aeconomy%2Cmaxhops%3A0" style="background:#ffcc00;color:#000;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Expedia</a>
+    <a href="https://www.edreams.com/flights/#TLV/anywhere//{d_today}/1adults/0inf/0children/economy" style="background:#0073e6;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">eDreams</a>
+    <a href="https://www.walla-tours.co.il/catalog/flights?origin=TLV" style="background:#cc0000;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">וואלה טורס</a>
   </td></tr>
 
-  <tr><td style="padding:8px 0 22px;text-align:center;">
-    <p style="color:#94a3b8;font-size:11px;margin:0 0 10px;">🇮🇱 אתרים ישראלים + קבוצות</p>
+  <tr><td style="padding:8px 0 6px;text-align:center;">
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 10px;">🇮🇱 ישראלים + חברות תעופה ישירות</p>
     <a href="https://flyall.club/Flights" style="background:#0066cc;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">✈️ FlyAll</a>
     <a href="https://www.maxtravel.co.il/deals/%D7%98%D7%99%D7%A1%D7%95%D7%AA-%D7%94%D7%A8%D7%92%D7%A2-%D7%94%D7%90%D7%97%D7%A8%D7%95%D7%9F" style="background:#e31e24;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">💳 MaxTravel</a>
     <a href="https://www.hulyo.co.il/flights" style="background:#ff6b35;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">⚡ חוליו</a>
-    <a href="https://www.facebook.com/groups/natkati" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">👥 נתקעתי ברגע האחרון</a>
+    <a href="https://secretflights.co.il/last-minute-flights/" style="background:#1a1a2e;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🔒 טיסות סודיות</a>
+    <a href="https://www.israir.co.il/Flights/FlightSearch" style="background:#003087;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ישראייר</a>
+    <a href="https://www.arkia.com/he/flights" style="background:#e8000d;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 ארקיע</a>
+    <a href="https://www.elal.com/he-il/israel" style="background:#003399;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">🇮🇱 אל על</a>
+  </td></tr>
+
+  <tr><td style="padding:4px 0 22px;text-align:center;">
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 10px;">👥 קבוצות פייסבוק ישראליות</p>
+    <a href="https://www.facebook.com/groups/natkati" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">נתקעתי ברגע האחרון</a>
+    <a href="https://www.facebook.com/SecretFlights.co.il" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">טיסות סודיות</a>
+    <a href="https://www.facebook.com/Hulyo.il" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">חוליו</a>
   </td></tr>
 
 </table>
