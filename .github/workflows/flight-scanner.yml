@@ -5,17 +5,12 @@ on:
     - cron: "0 4 * * *"
     - cron: "0 17 * * *"
   workflow_dispatch:
-    inputs:
-      session:
-        description: "morning / evening / focus"
-        default: "morning"
 
 jobs:
-  daily-scan:
-    name: Daily Flight Scan & Email
+  scan-and-send:
+    name: Scan and Send
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,8 +18,7 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
 
-      - name: ✈️ Run Scanner
-        continue-on-error: true
+      - name: Run Flight Scanner
         env:
           EMAIL_SESSION:    morning
           SMTP_USER:        ${{ secrets.SMTP_USER }}
@@ -32,35 +26,8 @@ jobs:
           SMTP_HOST:        smtp.gmail.com
           SMTP_PORT:        "587"
           RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
-          TEST_MODE:        "true"
+          TEST_MODE:        ${{ secrets.TEST_MODE }}
         run: |
+          set -x
           cd src
-          python -u main.py 2>&1 || true
-
-      - name: 🔍 Show Python error
-        if: always()
-        env:
-          EMAIL_SESSION:    morning
-          SMTP_USER:        ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
-          SMTP_HOST:        smtp.gmail.com
-          SMTP_PORT:        "587"
-          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
-          TEST_MODE:        "true"
-        run: |
-          cd src
-          python -u -c "
-import traceback, sys, os
-print('Python:', sys.version)
-print('SMTP_USER:', os.environ.get('SMTP_USER','NOT SET'))
-print('SMTP_PASSWORD:', 'SET' if os.environ.get('SMTP_PASSWORD') else 'NOT SET')
-print('TEST_MODE:', os.environ.get('TEST_MODE'))
-print('--- Running main ---')
-try:
-    import main
-    main.main()
-    print('SUCCESS')
-except Exception as e:
-    print('EXCEPTION:', type(e).__name__, str(e))
-    traceback.print_exc()
-"
+          python -u main.py
