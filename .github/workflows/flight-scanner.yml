@@ -21,10 +21,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
       - run: pip install -r requirements.txt
 
       - name: ✈️ Run Scanner
+        continue-on-error: true
         env:
           EMAIL_SESSION:    morning
           SMTP_USER:        ${{ secrets.SMTP_USER }}
@@ -35,7 +35,32 @@ jobs:
           TEST_MODE:        "true"
         run: |
           cd src
-          python main.py 2>&1
-          EXIT_CODE=$?
-          echo "Exit code: $EXIT_CODE"
-          exit $EXIT_CODE
+          python -u main.py 2>&1 || true
+
+      - name: 🔍 Show Python error
+        if: always()
+        env:
+          EMAIL_SESSION:    morning
+          SMTP_USER:        ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
+          SMTP_HOST:        smtp.gmail.com
+          SMTP_PORT:        "587"
+          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+          TEST_MODE:        "true"
+        run: |
+          cd src
+          python -u -c "
+import traceback, sys, os
+print('Python:', sys.version)
+print('SMTP_USER:', os.environ.get('SMTP_USER','NOT SET'))
+print('SMTP_PASSWORD:', 'SET' if os.environ.get('SMTP_PASSWORD') else 'NOT SET')
+print('TEST_MODE:', os.environ.get('TEST_MODE'))
+print('--- Running main ---')
+try:
+    import main
+    main.main()
+    print('SUCCESS')
+except Exception as e:
+    print('EXCEPTION:', type(e).__name__, str(e))
+    traceback.print_exc()
+"
