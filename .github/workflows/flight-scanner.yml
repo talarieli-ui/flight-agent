@@ -27,12 +27,16 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
 
-      - name: Check imports
-        run: |
-          cd src
-          python -c "import main; print('import OK')"
-
       - name: Run Flight Scanner
         run: |
           cd src
+          python -u main.py 2>&1 | tee /tmp/output.txt || true
+          echo "=== OUTPUT ==="
+          cat /tmp/output.txt
+          echo "=== ENV CHECK ==="
+          echo "SMTP_USER=$SMTP_USER"
+          echo "SMTP_PASSWORD length=${#SMTP_PASSWORD}"
+          echo "TEST_MODE=$TEST_MODE"
+          echo "RECIPIENTS=$RECIPIENT_EMAILS"
+          # Now exit with original exit code
           python -u main.py
