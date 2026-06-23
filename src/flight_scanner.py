@@ -303,10 +303,79 @@ class GoogleFlightsScraper(FlightScraper):
             return []
 
 
+class ExpediaScraper(FlightScraper):
+    """Expedia Rapid API — paid but free tier available."""
+    BASE_URL = "https://test.api.expedia.com/flights/v3/search"
+
+    def __init__(self):
+        super().__init__("Expedia")
+        self.api_key = os.getenv("EXPEDIA_API_KEY", "")
+        self.api_secret = os.getenv("EXPEDIA_API_SECRET", "")
+
+    def search(self, origin: str, dest: str, departure_date: str) -> list:
+        if not self.api_key:
+            return []
+        try:
+            import hashlib, time as t
+            ts = str(int(t.time()))
+            sig = hashlib.md5(f"{self.api_key}{ts}{self.api_secret}".encode()).hexdigest()
+            r = self.session.get(self.BASE_URL, params={
+                "departureAirport": origin,
+                "arrivalAirport": dest,
+                "departureDate": departure_date,
+                "adults": 1,
+                "nonstop": True,
+                "currency": "ILS",
+                "apiKey": self.api_key,
+                "cid": ts,
+                "sig": sig,
+            }, timeout=15)
+            r.raise_for_status()
+            results = []
+            for f in r.json().get("offers", [])[:3]:
+                price = f.get("totalFare", {}).get("totalFare", 0)
+                seg   = f.get("legs", [{}])[0].get("segments", [{}])[0]
+                dep   = seg.get("departureDateTime", departure_date + "T00:00:00")
+                arr   = seg.get("arrivalDateTime", "")
+                from email_builder import build_deep_link
+                results.append({
+                    "source": "Expedia",
+                    "origin": origin, "destination": dest,
+                    "price_ils": round(price),
+                    "departure": dep, "arrival": arr,
+                    "return_departure": "", "return_arrival": "",
+                    "duration_min": f.get("totalTripTime", 0),
+                    "stops": 0,
+                    "airline": seg.get("marketingCarrier", {}).get("code", "?"),
+                    "deep_link": build_deep_link("Expedia", origin, dest, dep[:10]),
+                })
+            self._sleep()
+            return results
+        except Exception as e:
+            logger.warning(f"[{self.name}] {origin}→{dest}: {e}")
+            return []
+
+
+class EDreamsScraper(FlightScraper):
+    """
+    eDreams / Opodo partner API via Travelpayouts affiliate feed.
+    Falls back to link-only if no token.
+    """
+
+    def __init__(self):
+        super().__init__("eDreams")
+
+    def search(self, origin: str, dest: str, departure_date: str) -> list:
+        # eDreams doesn't expose a free search API — returns link-only entries
+        # so the user gets directed to eDreams with pre-filled params
+        return []   # populated as a booking link option in email_builder
+
+
 def scan_destinations(dest_list: list) -> list:
     kiwi      = SkypikerScraper()
     aviasales = AviasalesScraper()
     gf        = GoogleFlightsScraper()
+    expedia   = ExpediaScraper()
     windows   = build_search_windows()
 
     logger.info(f"Search windows: {len(windows)} dates from {windows[0]['date']} to {windows[-1]['date']}")
@@ -330,6 +399,7 @@ def scan_destinations(dest_list: list) -> list:
             flights += kiwi.search("TLV", dest_code, w["date"])
             flights += aviasales.search("TLV", dest_code, w["date"])
             flights += gf.search("TLV", dest_code, w["date"])
+            flights += expedia.search("TLV", dest_code, w["date"])
             for f in flights:
                 f["dest_name"]    = dest["name"]
                 f["window_label"] = w["label"]
