@@ -2,26 +2,23 @@ name: ✈️ Flight Scanner
 
 on:
   schedule:
-    - cron: "0 4 * * *"   # 07:00 Israel Standard Time
-    - cron: "0 17 * * *"  # 20:00 Israel Standard Time
-    - cron: "*/10 * * * *" # Gmail listener — every 10 min (for FOCUS replies)
+    - cron: "0 4 * * *"
+    - cron: "0 17 * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       session:
         description: "morning / evening / focus"
         default: "morning"
       focus_query:
-        description: "Destination for focused scan (only when session=focus)"
+        description: "Destination for focused scan"
         default: ""
 
 jobs:
-
-  # ── Daily scan (07:00 and 20:00) ────────────────────────────────────────────
   daily-scan:
     name: Daily Flight Scan & Email
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Run only on the two daily crons or manual trigger (not the 10-min cron)
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'schedule' &&
@@ -29,14 +26,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - run: pip install -r requirements.txt
-
       - name: ⏰ Determine session
         run: |
           HOUR=$(TZ="Asia/Jerusalem" date +%H)
@@ -51,31 +45,21 @@ jobs:
           echo "SESSION=$SESSION" >> $GITHUB_ENV
           echo "FOCUS_QUERY=$FOCUS" >> $GITHUB_ENV
 
-      - run: mkdir -p logs
-
       - name: ✈️ Run Scanner
         env:
           EMAIL_SESSION:    ${{ env.SESSION }}
           FOCUS_QUERY:      ${{ env.FOCUS_QUERY }}
           SMTP_USER:        ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
-          SMTP_HOST:        ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
-          SMTP_PORT:        ${{ secrets.SMTP_PORT || '587' }}
-          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS || 'tal.arieli@gmail.com,ker22ari@gmail.com' }}
+          SMTP_HOST:        smtp.gmail.com
+          SMTP_PORT:        "587"
+          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+          TEST_MODE:        ${{ secrets.TEST_MODE }}
           KIWI_API_KEY:     ${{ secrets.KIWI_API_KEY }}
           SERPAPI_KEY:      ${{ secrets.SERPAPI_KEY }}
           AVIASALES_TOKEN:  ${{ secrets.AVIASALES_TOKEN }}
         run: cd src && python main.py
 
-      - name: 📋 Upload logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: scan-logs-${{ github.run_number }}
-          path: logs/scanner.log
-          retention-days: 7
-
-  # ── Focus reply listener (every 10 min) ─────────────────────────────────────
   focus-listener:
     name: Check for FOCUS reply emails
     runs-on: ubuntu-latest
@@ -87,23 +71,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-
       - run: pip install -r requirements.txt
-      - run: mkdir -p logs
-
       - name: 📬 Check Gmail for FOCUS requests
         env:
           SMTP_USER:             ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD:         ${{ secrets.SMTP_PASSWORD }}
-          SMTP_HOST:             ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
-          SMTP_PORT:             ${{ secrets.SMTP_PORT || '587' }}
-          RECIPIENT_EMAILS:      ${{ secrets.RECIPIENT_EMAILS || 'tal.arieli@gmail.com,ker22ari@gmail.com' }}
-          ALLOWED_FOCUS_SENDERS: ${{ secrets.ALLOWED_FOCUS_SENDERS || 'tal.arieli@gmail.com,ker22ari@gmail.com' }}
+          SMTP_HOST:             smtp.gmail.com
+          SMTP_PORT:             "587"
+          RECIPIENT_EMAILS:      ${{ secrets.RECIPIENT_EMAILS }}
+          ALLOWED_FOCUS_SENDERS: ${{ secrets.ALLOWED_FOCUS_SENDERS }}
           KIWI_API_KEY:          ${{ secrets.KIWI_API_KEY }}
           SERPAPI_KEY:           ${{ secrets.SERPAPI_KEY }}
           AVIASALES_TOKEN:       ${{ secrets.AVIASALES_TOKEN }}
