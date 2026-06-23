@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - name: Run API Diagnostics
-        run: cd src && python -u diag.py
+      - name: Test APIs
+        run: cd src && python -u api_test.py
       - name: Run Scanner
         run: cd src && python -u main.py
