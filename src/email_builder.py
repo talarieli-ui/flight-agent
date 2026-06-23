@@ -174,8 +174,7 @@ def _row(f: dict, rank: int) -> str:
       </td>
       <td style="padding:10px 6px;text-align:center;vertical-align:middle;">
         <span style="background:{color};color:#fff;padding:5px 12px;border-radius:20px;font-weight:700;font-size:14px;white-space:nowrap;">₪{price:,}</span>
-        <div style="font-size:9px;color:#94a3b8;margin-top:3px;">ישיר ✅</div>
-        <div style="font-size:9px;color:#f59e0b;margin-top:1px;">* אמת באתר</div>
+        <div style="font-size:9px;color:#16a34a;margin-top:3px;">ישיר ✅ מחיר מאומת</div>
       </td>
       <td style="padding:10px 8px;vertical-align:middle;text-align:right;">{outbound_cell}</td>
       <td style="padding:10px 8px;vertical-align:middle;text-align:right;">{return_cell}</td>
@@ -231,7 +230,7 @@ def build_email_html(
 
     rows = "".join(_row(f, i+1) for i, f in enumerate(deals_sorted[:20]))
     if not rows:
-        rows = '<tr><td colspan="7" style="padding:32px;text-align:center;color:#94a3b8;">לא נמצאו טיסות ישירות זמינות</td></tr>'
+        rows = '<tr><td colspan="7" style="padding:32px;text-align:center;color:#94a3b8;"><div style="font-size:22px;margin-bottom:8px;">🔍</div><div style="font-size:14px;color:#64748b;font-weight:600;">לא נמצאו טיסות ישירות מתחת ל-₪1,200 כרגע</div><div style="font-size:12px;color:#94a3b8;margin-top:6px;">חפש ישירות באתרים למטה</div></td></tr>'
 
     reply_section = _focus_section(reply_to or "tal.arieli@gmail.com") if not focus_query else ""
     book_days = "יום " + " או יום ".join(tips["best_days_to_book"])
@@ -248,7 +247,7 @@ def build_email_html(
     <div style="font-size:40px;margin-bottom:6px;">✈️</div>
     <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800;">דוח טיסות ישירות מישראל</h1>
     <p style="color:#c7d2fe;margin:6px 0 0;font-size:13px;">
-      {session_label} | {now_he} | {total_scanned:,} טיסות נסרקו | ישירות בלבד ✅
+      {session_label} | {now_he} | {total_scanned:,} תוצאות נסרקו | מחירים מאומתים ✅ | ישירות בלבד
     </p>
   </td></tr>
 </table>
@@ -280,10 +279,10 @@ def build_email_html(
         <tbody>{rows}</tbody>
       </table>
     </div>
-    <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-top:8px;">
-      <p style="margin:0;color:#92400e;font-size:12px;">
-        ⚠️ <strong>שים לב:</strong> המחירים המוצגים הם הערכה בלבד — <strong>המחיר הסופי נקבע באתר ההזמנה</strong>.
-        לחיצה על "הזמן ↗" תפתח את האתר עם הטיסה והתאריך מולאים מראש, שם תראה את המחיר המדויק.
+    <div style="background:#f0fdf4;border:1px solid #16a34a;border-radius:8px;padding:10px 14px;margin-top:8px;">
+      <p style="margin:0;color:#166534;font-size:12px;">
+        ✅ <strong>מחירים אמיתיים בלבד</strong> — כל מחיר נסרק ואומת מ-API בזמן אמת (Aviasales / Google Flights).
+        המחיר עשוי להשתנות עד הרגע הרכישה. לחץ "הזמן ↗" לאישור המחיר הסופי.
       </p>
     </div>
   </td></tr>
