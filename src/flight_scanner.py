@@ -64,7 +64,31 @@ DESTINATIONS = [
     {"code": "CMN", "name": "קזבלנקה"},
     {"code": "CPT", "name": "קייפטאון"},
     {"code": "NBO", "name": "ניירובי"},
+    # איי יוון
+    {"code": "EFL", "name": "קפלוניה"},
+    {"code": "CFU", "name": "קורפו"},
+    {"code": "PVK", "name": "לפקדה / פרבזה"},
+    {"code": "ZTH", "name": "זקינתוס"},
+    {"code": "KGS", "name": "קוס"},
+    {"code": "RHO", "name": "רודוס"},
+    {"code": "JMK", "name": "מיקונוס"},
+    {"code": "JTR", "name": "סנטוריני"},
+    {"code": "HER", "name": "כרתים (הרקליון)"},
+    {"code": "CHQ", "name": "כרתים (חניה)"},
+    {"code": "JSI", "name": "סקיאתוס"},
+    {"code": "SMI", "name": "סמוס"},
+    {"code": "LXS", "name": "לסבוס"},
+    {"code": "JKH", "name": "כיוס"},
 ]
+
+# --- Special rules per destination ---
+# Prague: only July–August
+# Max price: ₪1,200 (applied in find_best_deals)
+DEST_RULES = {
+    "PRG": {"months_only": [7, 8]},   # פראג — יולי-אוגוסט בלבד
+}
+
+MAX_PRICE_ILS = 1200   # מסנן טיסות מעל ₪1,200
 
 # Search: from 3 days ahead to 6 months ahead, sampled at intervals
 def build_search_windows():
@@ -292,7 +316,16 @@ def scan_destinations(dest_list: list) -> list:
         dest_code = dest["code"]
         if dest_code == "TLV":
             continue
+        rules = DEST_RULES.get(dest_code, {})
+        months_only = rules.get("months_only", [])
+
         for w in windows:
+            # Apply month filter if defined for this destination
+            if months_only:
+                w_month = int(w["date"][5:7])
+                if w_month not in months_only:
+                    continue
+
             flights = []
             flights += kiwi.search("TLV", dest_code, w["date"])
             flights += aviasales.search("TLV", dest_code, w["date"])
@@ -327,12 +360,15 @@ def scan_focused(query: str) -> list:
 
 
 def find_best_deals(flights: list, top_n: int = 20) -> list:
-    """Best deal per destination (direct only), sorted price low→high."""
+    """Best deal per destination (direct only, max ₪1,200), sorted price low→high."""
     seen: dict = {}
     for f in flights:
         if f.get("stops", 0) != 0:
             continue
+        price = f.get("price_ils", 99999)
+        if price > MAX_PRICE_ILS:
+            continue   # מסנן טיסות מעל ₪1,200
         key = f["destination"]
-        if key not in seen or f.get("price_ils", 99999) < seen[key].get("price_ils", 99999):
+        if key not in seen or price < seen[key].get("price_ils", 99999):
             seen[key] = f
     return sorted(seen.values(), key=lambda x: x.get("price_ils", 99999))[:top_n]
