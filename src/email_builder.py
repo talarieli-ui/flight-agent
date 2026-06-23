@@ -69,6 +69,9 @@ def build_deep_link(source: str, origin: str, dest_code: str, departure_date: st
         "Aviasales":      f"https://www.aviasales.com/search/{origin}{d8}{dest_code}1",
         "Jetradar":       f"https://www.jetradar.com/flights/{origin}-{dest_code}/?depart_date={dy}",
         "Google Flights": f"https://www.google.com/travel/flights/search?q=flights+from+{origin}+to+{dest_code}+on+{dy}",
+        "FlyAll":         f"https://flyall.club/Flights?origin={origin}&destination={dest_code}&departDate={dy}&adults=1",
+        "MaxTravel":      f"https://www.maxtravel.co.il/flights?origin={origin}&destination={dest_code}&departureDate={dy}&adults=1",
+        "Hulyo":          f"https://www.hulyo.co.il/flights?origin={origin}&dest={dest_code}&date={dy}",
     }
     return links.get(source,
         f"https://www.skyscanner.net/transport/flights/{origin.lower()}/{dest_code.lower()}/{d8}/?adults=1&cabinclass=economy"
@@ -277,6 +280,14 @@ def build_email_html(
     <a href="https://www.momondo.com/flight-search/Tel-Aviv/Anywhere" style="background:#005580;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Momondo</a>
     <a href="https://www.jetradar.com/flights/TLV-/" style="background:#1a9b6c;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Jetradar</a>
     <a href="https://www.ryanair.com/en/cheap-flights/from/tel-aviv" style="background:#073590;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">Ryanair</a>
+  </td></tr>
+
+  <tr><td style="padding:8px 0 22px;text-align:center;">
+    <p style="color:#94a3b8;font-size:11px;margin:0 0 10px;">🇮🇱 אתרים ישראלים + קבוצות</p>
+    <a href="https://flyall.club/Flights" style="background:#0066cc;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">✈️ FlyAll</a>
+    <a href="https://www.maxtravel.co.il/deals/%D7%98%D7%99%D7%A1%D7%95%D7%AA-%D7%94%D7%A8%D7%92%D7%A2-%D7%94%D7%90%D7%97%D7%A8%D7%95%D7%9F" style="background:#e31e24;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">💳 MaxTravel</a>
+    <a href="https://www.hulyo.co.il/flights" style="background:#ff6b35;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">⚡ חוליו</a>
+    <a href="https://www.facebook.com/groups/natkati" style="background:#1877f2;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;margin:3px;display:inline-block;">👥 נתקעתי ברגע האחרון</a>
   </td></tr>
 
 </table>
