@@ -9,9 +9,6 @@ on:
       session:
         description: "morning / evening / focus"
         default: "morning"
-      focus_query:
-        description: "Destination for focused scan"
-        default: ""
 
 jobs:
   daily-scan:
@@ -27,47 +24,18 @@ jobs:
           cache: "pip"
       - run: pip install -r requirements.txt
 
-      - name: ⏰ Determine session
-        run: |
-          HOUR=$(TZ="Asia/Jerusalem" date +%H)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            SESSION="${{ github.event.inputs.session }}"
-            FOCUS="${{ github.event.inputs.focus_query }}"
-          elif [ "$HOUR" -lt 12 ]; then
-            SESSION="morning"; FOCUS=""
-          else
-            SESSION="evening"; FOCUS=""
-          fi
-          echo "SESSION=$SESSION" >> $GITHUB_ENV
-          echo "FOCUS_QUERY=$FOCUS" >> $GITHUB_ENV
-
-      - name: 🔍 Debug - verify files and env
-        run: |
-          echo "=== Files ==="
-          ls src/
-          echo "=== Python syntax check ==="
-          python3 -m py_compile src/main.py && echo "main.py OK"
-          python3 -m py_compile src/email_builder.py && echo "email_builder.py OK"
-          echo "=== SMTP_USER set? ==="
-          if [ -n "$SMTP_USER" ]; then echo "YES"; else echo "NO - SECRET MISSING"; fi
-          echo "=== TEST_MODE ==="
-          echo "$TEST_MODE"
-        env:
-          SMTP_USER:    ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          TEST_MODE:    ${{ secrets.TEST_MODE }}
-
       - name: ✈️ Run Scanner
         env:
-          EMAIL_SESSION:    ${{ env.SESSION }}
-          FOCUS_QUERY:      ${{ env.FOCUS_QUERY }}
+          EMAIL_SESSION:    morning
           SMTP_USER:        ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
           SMTP_HOST:        smtp.gmail.com
           SMTP_PORT:        "587"
           RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
-          TEST_MODE:        ${{ secrets.TEST_MODE }}
-          KIWI_API_KEY:     ${{ secrets.KIWI_API_KEY }}
-          SERPAPI_KEY:      ${{ secrets.SERPAPI_KEY }}
-          AVIASALES_TOKEN:  ${{ secrets.AVIASALES_TOKEN }}
-        run: cd src && python main.py
+          TEST_MODE:        "true"
+        run: |
+          cd src
+          python main.py 2>&1
+          EXIT_CODE=$?
+          echo "Exit code: $EXIT_CODE"
+          exit $EXIT_CODE
