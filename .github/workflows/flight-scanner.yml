@@ -11,6 +11,15 @@ jobs:
     name: Scan and Send
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      EMAIL_SESSION:    morning
+      SMTP_USER:        ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
+      SMTP_HOST:        smtp.gmail.com
+      SMTP_PORT:        "587"
+      RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+      TEST_MODE:        "true"
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,16 +27,12 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
 
-      - name: Run Flight Scanner
-        env:
-          EMAIL_SESSION:    morning
-          SMTP_USER:        ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
-          SMTP_HOST:        smtp.gmail.com
-          SMTP_PORT:        "587"
-          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
-          TEST_MODE:        ${{ secrets.TEST_MODE }}
+      - name: Check imports
         run: |
-          set -x
+          cd src
+          python -c "import main; print('import OK')"
+
+      - name: Run Flight Scanner
+        run: |
           cd src
           python -u main.py
