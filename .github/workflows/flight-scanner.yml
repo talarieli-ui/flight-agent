@@ -28,15 +28,15 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Diagnose SerpAPI
-        run: cd src && python -u diag.py 2>&1 | tee /tmp/diag.txt || true
+        run: cd src && python -u diag.py
 
-      - name: Upload diagnostic
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: diag-${{ github.run_number }}
-          path: /tmp/diag.txt
-          retention-days: 1
+      - name: Commit diagnostic result
+        run: |
+          git config user.email "flight-scanner@github.com"
+          git config user.name "Flight Scanner Bot"
+          git add src/diag_result.txt || true
+          git commit -m "diag: serpapi check result" || true
+          git push || true
 
       - name: Run Scanner
         run: cd src && python -u main.py
