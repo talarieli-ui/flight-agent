@@ -1,13 +1,13 @@
 """
-Flight Scanner v7 — Per-OTA verified prices via SerpAPI booking_options.
-- Step 1: Google Flights search → get flight options with departure_token
-- Step 2: Use departure_token to fetch booking_options → get exact price per OTA
-- Each price labeled with the actual OTA (Skyscanner, Kiwi, Gotogate, EL AL, etc.)
-- 24h cache in repo (cache/prices.json) to avoid burning quota
-- Strict: no prices = no email
+Flight Scanner v8 — Round-trip prices matching Google Flights.
+KEY FIXES:
+- Round-trip search (type=1) with both outbound and return dates
+- Prices match Google Flights site exactly
+- Fixed URL formats for all booking sites (YYMMDD where needed)
+- One API call per route (simple, accurate, fits in quota)
+- Repo cache 24h TTL
 """
-
-import os, logging, requests, time, json, hashlib
+import os, logging, requests, time, json
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -30,16 +30,17 @@ CACHE_TTL_HOURS = 24
 
 
 def get_search_windows():
+    """Round-trip windows with both outbound and return dates."""
     now = datetime.utcnow()
     return [
         {"label": "בעוד 3 שבועות",
-         "dep": (now + timedelta(days=21)).strftime("%Y-%m-%d"),
-         "ret": (now + timedelta(days=26)).strftime("%Y-%m-%d"),
-         "icon": "📅"},
+         "dep":   (now + timedelta(days=21)).strftime("%Y-%m-%d"),
+         "ret":   (now + timedelta(days=26)).strftime("%Y-%m-%d"),
+         "icon":  "📅"},
         {"label": "בעוד 6 שבועות",
-         "dep": (now + timedelta(days=42)).strftime("%Y-%m-%d"),
-         "ret": (now + timedelta(days=49)).strftime("%Y-%m-%d"),
-         "icon": "☀️"},
+         "dep":   (now + timedelta(days=42)).strftime("%Y-%m-%d"),
+         "ret":   (now + timedelta(days=49)).strftime("%Y-%m-%d"),
+         "icon":  "☀️"},
     ]
 
 
@@ -50,34 +51,53 @@ KIWI_SLUGS = {
 
 
 def build_search_links(origin, dest, dep_date, ret_date):
+    """Build deep links that ACTUALLY pre-fill the search on each site."""
     dt_dep = datetime.strptime(dep_date, "%Y-%m-%d")
     dt_ret = datetime.strptime(ret_date, "%Y-%m-%d")
-    d8d    = dt_dep.strftime("%Y%m%d")
-    d8r    = dt_ret.strftime("%Y%m%d")
-    slug   = KIWI_SLUGS.get(dest, dest.lower())
+
+    # Skyscanner uses YYMMDD (6 digits)
+    sky_dep = dt_dep.strftime("%y%m%d")
+    sky_ret = dt_ret.strftime("%y%m%d")
+
+    # Aviasales uses DDMM (4 digits, day+month)
+    av_dep = dt_dep.strftime("%d%m")
+    av_ret = dt_ret.strftime("%d%m")
+
+    slug = KIWI_SLUGS.get(dest, dest.lower())
+
     return {
-        "Skyscanner":     f"https://www.skyscanner.net/transport/flights/{origin.lower()}/{dest.lower()}/{d8d}/{d8r}/?adults=1&cabinclass=economy&stops=!twoPlusStops",
-        "Google Flights": f"https://www.google.com/travel/flights/search?q=flights+from+{origin}+to+{dest}+on+{dep_date}+returning+{ret_date}",
-        "Kiwi.com":       f"https://www.kiwi.com/en/search/results/tel-aviv-israel/{slug}/{dep_date}/{ret_date}?stops=0&adults=1",
-        "Wizz Air":       f"https://wizzair.com/#/booking/select-flight/{origin}/{dest}/{dep_date}/{ret_date}/1/0/0/null",
-        "Kayak":          f"https://www.kayak.com/flights/{origin}-{dest}/{dep_date}/{ret_date}?sort=price_a&fs=stops=0",
-        "Aviasales":      f"https://www.aviasales.com/search/{origin}{d8d[4:]}{dest}{d8r[4:]}1",
+        # Skyscanner: YYMMDD format, verified working with round-trip
+        "Skyscanner": f"https://www.skyscanner.net/transport/flights/{origin.lower()}/{dest.lower()}/{sky_dep}/{sky_ret}/?adultsv2=1&cabinclass=economy&rtn=1&preferdirects=false&outboundaltsenabled=false&inboundaltsenabled=false",
+
+        # Google Flights: q= text search format is most stable
+        "Google Flights": f"https://www.google.com/travel/flights?hl=iw&curr=ILS&q=flights%20from%20{origin}%20to%20{dest}%20on%20{dep_date}%20through%20{ret_date}",
+
+        # Kiwi: round-trip URL
+        "Kiwi.com": f"https://www.kiwi.com/en/search/results/tel-aviv-israel/{slug}/{dep_date}/{ret_date}?sortBy=price&adults=1",
+
+        # Wizz Air: their hash-based URL
+        "Wizz Air": f"https://wizzair.com/#/booking/select-flight/{origin}/{dest}/{dep_date}/{ret_date}/1/0/0/null",
+
+        # Kayak: super clean URL format
+        "Kayak": f"https://www.kayak.com/flights/{origin}-{dest}/{dep_date}/{ret_date}/economy?sort=price_a",
+
+        # Aviasales: DDMM format
+        "Aviasales": f"https://www.aviasales.com/search/{origin}{av_dep}{dest}{av_ret}1",
     }
 
 
-# ─── Cache (repo-committed) ─────────────────────────────────────────────────
+# ─── Cache ──────────────────────────────────────────────────────────────────
 
 def load_cache():
     try:
         if CACHE_FILE.exists():
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 cache = json.load(f)
-            logger.info(f"[Cache] loaded {len(cache)} entries from {CACHE_FILE.name}")
+            logger.info(f"[Cache] loaded {len(cache)} entries")
             return cache
     except Exception as e:
-        logger.warning(f"[Cache] load failed: {e}")
+        logger.warning(f"[Cache] load: {e}")
     return {}
-
 
 def save_cache(cache):
     try:
@@ -86,12 +106,10 @@ def save_cache(cache):
             json.dump(cache, f, ensure_ascii=False, indent=2)
         logger.info(f"[Cache] saved {len(cache)} entries")
     except Exception as e:
-        logger.warning(f"[Cache] save failed: {e}")
+        logger.warning(f"[Cache] save: {e}")
 
-
-def cache_key(origin, dest, dep_date):
-    return f"{origin}_{dest}_{dep_date}"
-
+def cache_key(origin, dest, dep_date, ret_date):
+    return f"{origin}_{dest}_{dep_date}_{ret_date}"
 
 def is_fresh(entry):
     try:
@@ -101,7 +119,7 @@ def is_fresh(entry):
         return False
 
 
-# ─── SerpAPI client with two-step OTA price fetching ───────────────────────
+# ─── SerpAPI client — ROUND TRIP search ─────────────────────────────────────
 
 class SerpAPIClient:
     BASE = "https://serpapi.com"
@@ -125,150 +143,102 @@ class SerpAPIClient:
                         f"Left={self.searches_left}")
             return self.searches_left
         except Exception as e:
-            logger.warning(f"[SerpAPI] quota check: {e}")
+            logger.warning(f"[SerpAPI] quota: {e}")
             return 0
 
-    def fetch_flights_with_ota_prices(self, origin, dest, dep_date):
+    def search_round_trip(self, origin, dest, dep_date, ret_date):
         """
-        Two-step fetch:
-        1. Search Google Flights → get best flight + booking_token
-        2. Fetch booking_options for that flight → list of OTAs with their prices
-        Returns: list of {ota_name, price_ils, airline, transfers, ...}
+        ROUND TRIP search — type=1.
+        Returns top 5 flights with REAL round-trip prices.
+        Each flight: {price_ils, airline, transfers, dep_at, arr_at, ret_dep_at}
         """
         if not self.key:
-            return None
-
-        # Step 1: search
+            return []
         try:
             r = self.session.get(f"{self.BASE}/search", params={
                 "engine":        "google_flights",
                 "departure_id":  origin,
                 "arrival_id":    dest,
                 "outbound_date": dep_date,
-                "type":          2,    # one-way
+                "return_date":   ret_date,
+                "type":          1,    # 1 = round trip
                 "travel_class":  1,
-                "stops":         2,
+                "stops":         2,    # 0=any, 1=nonstop, 2=up to 1 stop
                 "currency":      "ILS",
                 "hl":            "iw",
                 "api_key":       self.key,
-            }, timeout=25)
+            }, timeout=30)
             self.calls_made += 1
 
             if r.status_code == 429:
                 logger.error("[SerpAPI] QUOTA EXCEEDED")
-                return None
+                return []
+
             data = r.json()
             if "error" in data:
-                logger.warning(f"[SerpAPI] step1 {origin}→{dest} {dep_date}: {data['error']}")
-                return None
+                logger.warning(f"[SerpAPI] {origin}↔{dest} {dep_date}/{ret_date}: {data['error']}")
+                return []
 
             flights = data.get("best_flights", []) + data.get("other_flights", [])
             if not flights:
-                logger.info(f"[SerpAPI] {origin}→{dest} {dep_date}: 0 flights")
-                return None
+                logger.info(f"[SerpAPI] {origin}↔{dest} {dep_date}/{ret_date}: 0 flights")
+                return []
 
-            # Pick the cheapest direct (or 1-stop) flight
-            candidates = [f for f in flights
-                          if f.get("price", 0) > 0
-                          and (len(f.get("flights", [])) - 1) <= 1]
-            if not candidates:
-                return None
-            best = min(candidates, key=lambda x: x["price"])
+            results = []
+            for f in flights:
+                price = f.get("price", 0)
+                if not price or price <= 0:
+                    continue
+                legs = f.get("flights", [])
+                if not legs:
+                    continue
 
-            legs    = best.get("flights", [])
-            stops   = len(legs) - 1
-            airline = legs[0].get("airline", "?") if legs else "?"
-            dep_at  = legs[0].get("departure_airport", {}).get("time", dep_date) if legs else dep_date
-            arr_at  = legs[-1].get("arrival_airport", {}).get("time", "") if legs else ""
-            dur     = best.get("total_duration", 0)
+                stops = len(legs) - 1
+                if stops > 1:
+                    continue
 
-            departure_token = best.get("departure_token")
-            gf_price        = int(best["price"])
-            time.sleep(1.2)
+                airline = legs[0].get("airline", "?")
+                dep_at  = legs[0].get("departure_airport", {}).get("time", dep_date)
+                arr_at  = legs[-1].get("arrival_airport", {}).get("time", "")
+                dur     = f.get("total_duration", 0)
 
-            # Step 2: get OTA booking options
-            ota_prices = []
-            if departure_token:
-                try:
-                    r2 = self.session.get(f"{self.BASE}/search", params={
-                        "engine":          "google_flights",
-                        "departure_id":    origin,
-                        "arrival_id":      dest,
-                        "outbound_date":   dep_date,
-                        "type":            2,
-                        "travel_class":    1,
-                        "currency":        "ILS",
-                        "hl":              "iw",
-                        "departure_token": departure_token,
-                        "api_key":         self.key,
-                    }, timeout=25)
-                    self.calls_made += 1
-
-                    if r2.status_code == 200:
-                        data2 = r2.json()
-                        for option in data2.get("booking_options", []):
-                            tg = option.get("together") or option.get("departing") or {}
-                            ota_name = tg.get("book_with", "")
-                            price    = tg.get("price", 0)
-                            if not ota_name or not price:
-                                continue
-                            ota_prices.append({
-                                "ota":       ota_name,
-                                "price_ils": int(price),
-                                "url":       tg.get("booking_request", {}).get("url", ""),
-                            })
-                except Exception as e:
-                    logger.warning(f"[SerpAPI step2] {e}")
-                time.sleep(1.2)
-
-            # Always include Google Flights' cheapest as one row
-            ota_prices.insert(0, {
-                "ota":       "Google Flights (זול ביותר)",
-                "price_ils": gf_price,
-                "url":       "",
-            })
-
-            # Dedupe by OTA name keeping cheapest
-            best_per_ota = {}
-            for p in ota_prices:
-                k = p["ota"].lower().strip()
-                if k not in best_per_ota or p["price_ils"] < best_per_ota[k]["price_ils"]:
-                    best_per_ota[k] = p
-            ota_prices = sorted(best_per_ota.values(), key=lambda x: x["price_ils"])
-
-            return {
-                "flight_meta": {
+                results.append({
+                    "price_ils":    int(price),
                     "airline":      airline,
                     "transfers":    stops,
                     "departure_at": dep_at,
                     "arrival_at":   arr_at,
                     "duration":     dur,
                     "match_date":   dep_at[:10],
-                },
-                "ota_prices": ota_prices[:6],   # top 6 by price
-            }
+                    "source":       "Google Flights (Round Trip)",
+                })
+
+            results.sort(key=lambda x: x["price_ils"])
+            logger.info(f"[SerpAPI] {origin}↔{dest} {dep_date}/{ret_date}: {len(results)} flights, "
+                        f"cheapest=₪{results[0]['price_ils']:,} {results[0]['airline']}")
+            time.sleep(1.5)
+            return results[:5]   # Top 5 cheapest
 
         except Exception as e:
             logger.warning(f"[SerpAPI] {origin}→{dest}: {e}")
-            return None
+            return []
 
 
-def fetch_with_cache(client, cache, origin, dest, dep_date):
-    """Return cached entry if fresh, else fetch fresh and update cache."""
-    key = cache_key(origin, dest, dep_date)
+def fetch_with_cache(client, cache, origin, dest, dep_date, ret_date):
+    key = cache_key(origin, dest, dep_date, ret_date)
     entry = cache.get(key)
     if entry and is_fresh(entry):
-        logger.info(f"[Cache HIT] {origin}→{dest} {dep_date}")
-        return entry.get("data")
+        logger.info(f"[Cache HIT] {origin}↔{dest} {dep_date}/{ret_date}")
+        return entry.get("flights", [])
 
-    logger.info(f"[Cache MISS] {origin}→{dest} {dep_date} — fetching")
-    data = client.fetch_flights_with_ota_prices(origin, dest, dep_date)
-    if data:
+    logger.info(f"[Cache MISS] {origin}↔{dest} {dep_date}/{ret_date} — fetching")
+    flights = client.search_round_trip(origin, dest, dep_date, ret_date)
+    if flights:
         cache[key] = {
             "fetched_at": datetime.utcnow().isoformat(),
-            "data":       data,
+            "flights":    flights,
         }
-    return data
+    return flights
 
 
 def build_search_hub(focus_query=""):
@@ -296,45 +266,36 @@ def build_search_hub(focus_query=""):
             if months_only and int(w["dep"][5:7]) not in months_only:
                 continue
 
-            data = fetch_with_cache(serp, cache, "TLV", code, w["dep"])
-
-            ota_prices = []
-            flight_meta = None
-            if data:
-                flight_meta = data.get("flight_meta")
-                ota_prices = [p for p in data.get("ota_prices", [])
-                              if p["price_ils"] <= MAX_PRICE_ILS]
+            flights = fetch_with_cache(serp, cache, "TLV", code, w["dep"], w["ret"])
+            flights_under_max = [f for f in flights if f["price_ils"] <= MAX_PRICE_ILS]
 
             dest_windows.append({
                 **w,
-                "links":       build_search_links("TLV", code, w["dep"], w["ret"]),
-                "flight_meta": flight_meta,
-                "ota_prices":  ota_prices,
+                "links":   build_search_links("TLV", code, w["dep"], w["ret"]),
+                "flights": flights_under_max,
             })
 
         if not dest_windows:
             continue
 
-        # Best price for this destination = min across all OTA prices in all windows
-        all_prices = [p["price_ils"] for w in dest_windows for p in w.get("ota_prices", [])]
-        best_price_ils = min(all_prices) if all_prices else None
+        all_prices = [f["price_ils"] for w in dest_windows for f in w.get("flights", [])]
+        best_price = min(all_prices) if all_prices else None
 
         results.append({
             **d,
             "windows":        dest_windows,
-            "best_price_ils": best_price_ils,
+            "best_price_ils": best_price,
         })
 
     save_cache(cache)
 
-    # Sort: priced (low→high) first, unpriced last
     priced     = [r for r in results if r.get("best_price_ils")]
     unpriced   = [r for r in results if not r.get("best_price_ils")]
     priced.sort(key=lambda x: x["best_price_ils"])
     final = priced + unpriced
 
-    logger.info(f"=== {len(priced)}/{len(final)} destinations with verified OTA prices ===")
-    logger.info(f"=== SerpAPI calls this run: {serp.calls_made} ===")
+    logger.info(f"=== {len(priced)}/{len(final)} destinations with prices ===")
+    logger.info(f"=== {serp.calls_made} SerpAPI calls this run ===")
     return {
         "destinations": final,
         "n_priced":     len(priced),
