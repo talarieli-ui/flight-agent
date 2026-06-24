@@ -307,9 +307,95 @@ class AviasalesPriceFinder:
         return {}
 
 
-def find_price(origin, dest, target_date, wizz, ryanair, aviasales):
-    """Try all sources, return the cheapest verified price found."""
+
+
+class AmadeusClient:
+    """
+    Amadeus Self-Service API.
+    Free tier: 2000 requests/month, REAL GDS prices.
+    Sign up: https://developers.amadeus.com/register
+    """
+    AUTH_URL   = "https://test.api.amadeus.com/v1/security/oauth2/token"
+    SEARCH_URL = "https://test.api.amadeus.com/v2/shopping/flight-offers"
+
+    def __init__(self):
+        self.client_id     = os.environ.get("AMADEUS_CLIENT_ID", "")
+        self.client_secret = os.environ.get("AMADEUS_CLIENT_SECRET", "")
+        self.token         = ""
+        self.session       = requests.Session()
+        if self.client_id and self.client_secret:
+            self._authenticate()
+
+    def _authenticate(self):
+        try:
+            r = self.session.post(self.AUTH_URL, data={
+                "grant_type":    "client_credentials",
+                "client_id":     self.client_id,
+                "client_secret": self.client_secret,
+            }, timeout=12)
+            r.raise_for_status()
+            self.token = r.json().get("access_token", "")
+            if self.token:
+                logger.info("[Amadeus] ✅ authenticated")
+        except Exception as e:
+            logger.warning(f"[Amadeus] auth failed: {e}")
+            self.token = ""
+
+    def get_price(self, origin, dest, target_date):
+        if not self.token:
+            return None
+        try:
+            r = self.session.get(self.SEARCH_URL, headers={
+                "Authorization": f"Bearer {self.token}",
+            }, params={
+                "originLocationCode":      origin,
+                "destinationLocationCode": dest,
+                "departureDate":           target_date,
+                "adults":                  1,
+                "nonStop":                 "false",
+                "currencyCode":            "ILS",
+                "max":                     5,
+            }, timeout=20)
+            if r.status_code == 401:
+                logger.warning("[Amadeus] token expired, re-auth")
+                self._authenticate()
+                return None
+            if r.status_code != 200:
+                return None
+            offers = r.json().get("data", [])
+            best = None
+            for offer in offers:
+                price = float(offer.get("price", {}).get("grandTotal", 0))
+                if price <= 0: continue
+                itineraries = offer.get("itineraries", [])
+                if not itineraries: continue
+                segments = itineraries[0].get("segments", [])
+                stops    = len(segments) - 1
+                if stops > 1: continue
+                first_seg = segments[0] if segments else {}
+                airline   = first_seg.get("carrierCode", "?")
+                dep_at    = first_seg.get("departure", {}).get("at", target_date)
+                if best is None or price < best["price_ils"]:
+                    best = {
+                        "price_ils":    int(price),
+                        "transfers":    stops,
+                        "airline":      airline,
+                        "departure_at": dep_at,
+                        "match_date":   dep_at[:10],
+                        "source":       "Amadeus",
+                    }
+            time.sleep(0.3)
+            return best
+        except Exception as e:
+            logger.warning(f"[Amadeus] {origin}→{dest}: {e}")
+            return None
+
+
+def find_price(origin, dest, target_date, wizz, ryanair, aviasales, amadeus):
+    """Try all sources, return cheapest verified price."""
     candidates = []
+    p0 = amadeus.get_price(origin, dest, target_date)
+    if p0: candidates.append(p0)
     p1 = wizz.get_price(origin, dest, target_date)
     if p1: candidates.append(p1)
     p2 = ryanair.get_price(origin, dest, target_date)
@@ -323,6 +409,7 @@ def find_price(origin, dest, target_date, wizz, ryanair, aviasales):
 
 def build_search_hub(focus_query=""):
     windows  = get_search_windows()
+    amadeus  = AmadeusClient()
     wizz     = WizzAirDirect()
     ryanair  = RyanairDirect()
     av       = AviasalesPriceFinder()
@@ -347,7 +434,7 @@ def build_search_hub(focus_query=""):
         for w in windows:
             if months_only and int(w["dep"][5:7]) not in months_only:
                 continue
-            price_info = find_price("TLV", code, w["dep"], wizz, ryanair, av)
+            price_info = find_price("TLV", code, w["dep"], wizz, ryanair, av, amadeus)
             dest_windows.append({
                 **w,
                 "links": build_search_links("TLV", code, w["dep"], w["ret"]),
