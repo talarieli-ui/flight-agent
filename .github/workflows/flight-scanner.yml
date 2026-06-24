@@ -18,6 +18,7 @@ jobs:
       SMTP_HOST:             smtp.gmail.com
       SMTP_PORT:             "587"
       RECIPIENT_EMAILS:      ${{ secrets.RECIPIENT_EMAILS }}
+      AVIASALES_TOKEN:       ${{ secrets.AVIASALES_TOKEN }}
       AMADEUS_CLIENT_ID:     ${{ secrets.AMADEUS_CLIENT_ID }}
       AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
 
