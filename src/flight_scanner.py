@@ -1,9 +1,8 @@
 """
-Flight Scanner v4 — Hub + Real Prices
-- Builds search hub (links to Skyscanner, Google, etc.)
-- Adds REAL prices from Aviasales public cache where available
-- Sorts destinations by best verified price (low→high)
-- Honest: shows "no verified price" when data unavailable
+Flight Scanner v5 — Direct airline APIs for real prices.
+Strategy: hit Wizz Air and Ryanair APIs directly (they're public, no auth).
+These are the cheapest carriers on TLV→Europe routes.
+Plus Aviasales as supplement, and search hub for everything else.
 """
 
 import os, logging, requests, time
@@ -43,7 +42,8 @@ DESTINATIONS = [
 
 DEST_RULES    = {"PRG": {"months_only": [7, 8]}}
 ILS_PER_USD   = 3.7
-MAX_PRICE_ILS = 3500
+EUR_PER_USD   = 0.92
+ILS_PER_EUR   = ILS_PER_USD / EUR_PER_USD   # ≈4.02
 
 KIWI_SLUGS = {
     "KGS":"kos-greece","RHO":"rhodes-greece","CFU":"corfu-greece",
@@ -59,29 +59,23 @@ KIWI_SLUGS = {
 
 
 def get_search_windows():
-    """4 strategic date windows."""
     now = datetime.utcnow()
-    windows = []
-
+    out = []
     next_friday = now + timedelta(days=(4 - now.weekday()) % 7 + 7)
-    windows.append({"label":"סוף שבוע הקרוב","dep":next_friday.strftime("%Y-%m-%d"),
-                    "ret":(next_friday+timedelta(days=3)).strftime("%Y-%m-%d"),"icon":"🚀"})
-
+    out.append({"label":"סוף שבוע הקרוב","dep":next_friday.strftime("%Y-%m-%d"),
+                "ret":(next_friday+timedelta(days=3)).strftime("%Y-%m-%d"),"icon":"🚀"})
     in_2w = now + timedelta(days=14)
-    windows.append({"label":"בעוד שבועיים","dep":in_2w.strftime("%Y-%m-%d"),
-                    "ret":(in_2w+timedelta(days=5)).strftime("%Y-%m-%d"),"icon":"📅"})
-
+    out.append({"label":"בעוד שבועיים","dep":in_2w.strftime("%Y-%m-%d"),
+                "ret":(in_2w+timedelta(days=5)).strftime("%Y-%m-%d"),"icon":"📅"})
     jul_15 = datetime(2026,7,15)
     if jul_15 < now: jul_15 = datetime(2027,7,15)
-    windows.append({"label":"אמצע יולי","dep":jul_15.strftime("%Y-%m-%d"),
-                    "ret":(jul_15+timedelta(days=7)).strftime("%Y-%m-%d"),"icon":"☀️"})
-
+    out.append({"label":"אמצע יולי","dep":jul_15.strftime("%Y-%m-%d"),
+                "ret":(jul_15+timedelta(days=7)).strftime("%Y-%m-%d"),"icon":"☀️"})
     aug_15 = datetime(2026,8,15)
     if aug_15 < now: aug_15 = datetime(2027,8,15)
-    windows.append({"label":"אמצע אוגוסט","dep":aug_15.strftime("%Y-%m-%d"),
-                    "ret":(aug_15+timedelta(days=7)).strftime("%Y-%m-%d"),"icon":"🏖️"})
-
-    return windows
+    out.append({"label":"אמצע אוגוסט","dep":aug_15.strftime("%Y-%m-%d"),
+                "ret":(aug_15+timedelta(days=7)).strftime("%Y-%m-%d"),"icon":"🏖️"})
+    return out
 
 
 def build_search_links(origin, dest, dep_date, ret_date):
@@ -100,117 +94,237 @@ def build_search_links(origin, dest, dep_date, ret_date):
     }
 
 
-# ─────────── REAL PRICE FETCHERS ────────────────────────────────────────────
+# ─── Direct airline APIs ─────────────────────────────────────────────────────
 
-class AviasalesPriceFinder:
+class WizzAirDirect:
     """
-    Free public Aviasales cache. No token needed.
-    Endpoint: /v1/prices/calendar — returns price-per-day for whole month.
+    Wizz Air's own public farechart API. No auth needed.
+    Returns prices for a 3-day window around the target date.
     """
-    URL = "https://api.travelpayouts.com/v1/prices/calendar"
-    URL_MATRIX = "https://api.travelpayouts.com/v2/prices/month-matrix"
-    URL_LATEST = "https://api.travelpayouts.com/v2/prices/latest"
+    URL = "https://be.wizzair.com/27.5.0/Api/asset/farechart"
+    HEADERS = {
+        "Accept": "application/json",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Content-Type": "application/json;charset=UTF-8",
+        "Origin": "https://wizzair.com",
+        "Referer": "https://wizzair.com/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    }
+
+    # Wizz only flies these routes from TLV
+    TLV_ROUTES = {"ATH","SKG","BUD","VIE","WAW","PRG","FCO","NAP","CTA","CAG",
+                  "KTW","KRK","GDN","WRO","DBV","SPU","BJV","TIA","ABZ",
+                  "LCJ","SOF","OTP","CLJ","TGM","IAS","KIV","TBS","EVN","KGS"}
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update(self.HEADERS)
+
+    def get_price(self, origin, dest, target_date):
+        if dest not in self.TLV_ROUTES:
+            return None
+        try:
+            r = self.session.post(self.URL, json={
+                "isRescueFare": False,
+                "isFlightChange": False,
+                "adultCount": 1,
+                "childCount": 0,
+                "dayInterval": 3,
+                "wdc": True,
+                "flightList": [{
+                    "departureStation": origin,
+                    "arrivalStation":   dest,
+                    "date":             target_date,
+                }],
+            }, timeout=12)
+            if r.status_code != 200:
+                return None
+            data = r.json()
+            flights = data.get("outboundFlights", [])
+            if not flights:
+                return None
+            # Pick cheapest within ±3 days
+            target = datetime.strptime(target_date, "%Y-%m-%d")
+            best = None
+            for f in flights:
+                price_obj = f.get("price", {})
+                amount = price_obj.get("amount", 0)
+                if not amount: continue
+                currency = price_obj.get("currencyCode", "EUR")
+                if currency == "EUR":
+                    price_ils = round(float(amount) * ILS_PER_EUR)
+                elif currency == "ILS":
+                    price_ils = int(amount)
+                elif currency == "USD":
+                    price_ils = round(float(amount) * ILS_PER_USD)
+                else:
+                    continue
+                if price_ils <= 0: continue
+                dep_at = f.get("departureDate", target_date)
+                try:
+                    d = datetime.strptime(dep_at[:10], "%Y-%m-%d")
+                    if abs((d-target).days) > 3: continue
+                except: pass
+                if best is None or price_ils < best["price_ils"]:
+                    best = {
+                        "price_ils": price_ils,
+                        "transfers": 0,
+                        "airline":   "Wizz Air",
+                        "departure_at": dep_at,
+                        "match_date": dep_at[:10],
+                        "source":    "Wizz Air",
+                    }
+            time.sleep(0.5)
+            return best
+        except Exception as e:
+            logger.warning(f"[WizzAir] {origin}→{dest}: {e}")
+            return None
+
+
+class RyanairDirect:
+    """
+    Ryanair's public farfnd API. No auth.
+    Useful for: BKK is not covered, but many EU routes.
+    """
+    URL = "https://services-api.ryanair.com/farfnd/v4/oneWayFares"
+    HEADERS = {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+    }
+
+    # Ryanair doesn't fly from TLV directly to many places but operates some routes
+    TLV_ROUTES = {"BUD","KRK","WRO","KTW","PSA","BLQ","TSR","CTA","RHO",
+                  "KGS","TLV-ATH-route","CFU","JMK","JTR","HER"}
 
     def __init__(self):
         self.s = requests.Session()
-        self.s.headers["User-Agent"] = "Mozilla/5.0 FlightScanner"
-        self._cache = {}   # (origin,dest,month) -> {date: price_data}
+        self.s.headers.update(self.HEADERS)
 
-    def get_month_prices(self, origin, dest, month):
-        """Returns {date_str: {price_usd, transfers, airline, departure_at}} for the month."""
-        key = (origin, dest, month)
-        if key in self._cache:
-            return self._cache[key]
-
-        # Try calendar endpoint first
+    def get_price(self, origin, dest, target_date):
+        if dest not in self.TLV_ROUTES:
+            return None
         try:
+            # Look ±3 days
+            target = datetime.strptime(target_date, "%Y-%m-%d")
+            date_from = (target - timedelta(days=3)).strftime("%Y-%m-%d")
+            date_to   = (target + timedelta(days=3)).strftime("%Y-%m-%d")
             r = self.s.get(self.URL, params={
-                "origin": origin, "destination": dest,
-                "depart_date": month,
-                "calendar_type": "departure_date",
-                "currency": "USD",
-            }, timeout=10)
-            r.raise_for_status()
-            data = r.json().get("data", {})
-            if data:
-                result = {}
-                for date_str, info in data.items():
-                    price = float(info.get("price", 0))
-                    if price > 0:
-                        result[date_str] = {
-                            "price_usd":     price,
-                            "price_ils":     round(price * ILS_PER_USD),
-                            "transfers":     info.get("number_of_changes", info.get("transfers", 0)),
-                            "airline":       info.get("gate", info.get("airline", "?")),
-                            "departure_at":  info.get("departure_at", ""),
-                            "return_at":     info.get("return_at", ""),
-                        }
-                self._cache[key] = result
-                logger.info(f"[Aviasales calendar] {origin}→{dest} {month}: {len(result)} prices")
-                time.sleep(0.5)
-                return result
-        except Exception as e:
-            logger.warning(f"[Aviasales calendar] {origin}→{dest} {month}: {e}")
-
-        # Fallback to month-matrix
-        try:
-            r2 = self.s.get(self.URL_MATRIX, params={
-                "origin": origin, "destination": dest,
-                "currency": "USD",
-                "show_to_affiliates": "false",
-            }, timeout=10)
-            r2.raise_for_status()
-            data2 = r2.json().get("data", [])
-            result = {}
-            for item in data2:
-                dep_at = item.get("depart_date", "")
-                if dep_at.startswith(month):
-                    price = float(item.get("value", 0))
-                    if price > 0:
-                        result[dep_at] = {
-                            "price_usd":    price,
-                            "price_ils":    round(price * ILS_PER_USD),
-                            "transfers":    item.get("number_of_changes", 0),
-                            "airline":      item.get("gate", "?"),
-                            "departure_at": dep_at,
-                            "return_at":    item.get("return_date", ""),
-                        }
-            if result:
-                self._cache[key] = result
-                logger.info(f"[Aviasales matrix] {origin}→{dest} {month}: {len(result)} prices")
+                "departureAirportIataCode": origin,
+                "arrivalAirportIataCode":   dest,
+                "outboundDepartureDateFrom": date_from,
+                "outboundDepartureDateTo":   date_to,
+                "adultCount": 1,
+                "currency":   "ILS",
+                "market":     "en-il",
+            }, timeout=12)
+            if r.status_code != 200:
+                return None
+            fares = r.json().get("fares", [])
+            best = None
+            for f in fares:
+                outb = f.get("outbound", {})
+                price = outb.get("price", {}).get("value", 0)
+                if not price or price <= 0:
+                    continue
+                price_ils = int(price)
+                if best is None or price_ils < best["price_ils"]:
+                    best = {
+                        "price_ils":    price_ils,
+                        "transfers":    0,
+                        "airline":      "Ryanair",
+                        "departure_at": outb.get("departureDate", target_date),
+                        "match_date":   outb.get("departureDate", target_date)[:10],
+                        "source":       "Ryanair",
+                    }
             time.sleep(0.5)
-            return result
+            return best
         except Exception as e:
-            logger.warning(f"[Aviasales matrix] {origin}→{dest} {month}: {e}")
-
-        self._cache[key] = {}
-        return {}
-
-    def best_for_window(self, origin, dest, dep_date, ret_date):
-        """Best cached price near the given window."""
-        month = dep_date[:7]
-        prices = self.get_month_prices(origin, dest, month)
-        if not prices:
+            logger.warning(f"[Ryanair] {origin}→{dest}: {e}")
             return None
 
-        # Find closest date within ±3 days of target
-        target = datetime.strptime(dep_date, "%Y-%m-%d")
+
+class AviasalesPriceFinder:
+    """Aviasales free cache. Limited coverage for TLV but worth trying."""
+    URL_CAL = "https://api.travelpayouts.com/v1/prices/calendar"
+    URL_MAT = "https://api.travelpayouts.com/v2/prices/month-matrix"
+    URL_LAT = "https://api.travelpayouts.com/v2/prices/latest"
+
+    def __init__(self):
+        self.s = requests.Session()
+        self.s.headers["User-Agent"] = "Mozilla/5.0"
+        self._cache = {}
+
+    def get(self, origin, dest, target_date):
+        month = target_date[:7]
+        key = (origin, dest, month)
+        if key not in self._cache:
+            self._cache[key] = self._fetch_month(origin, dest, month)
+
+        prices = self._cache[key]
+        if not prices: return None
+
+        target = datetime.strptime(target_date, "%Y-%m-%d")
         best = None
         for date_str, info in prices.items():
             try:
                 d = datetime.strptime(date_str[:10], "%Y-%m-%d")
-            except:
-                continue
-            if abs((d - target).days) > 3:
-                continue
+            except: continue
+            if abs((d - target).days) > 3: continue
             if best is None or info["price_ils"] < best["price_ils"]:
-                best = {**info, "match_date": date_str}
+                best = {**info, "match_date": date_str, "source": "Aviasales"}
         return best
+
+    def _fetch_month(self, origin, dest, month):
+        for params, url, src in [
+            ({"origin":origin,"destination":dest,"depart_date":month,
+              "calendar_type":"departure_date","currency":"USD"}, self.URL_CAL, "cal"),
+            ({"origin":origin,"destination":dest,"currency":"USD"}, self.URL_LAT, "lat"),
+        ]:
+            try:
+                r = self.s.get(url, params=params, timeout=10)
+                if r.status_code != 200: continue
+                data = r.json().get("data", {})
+                if not data: continue
+
+                result = {}
+                items = data.items() if isinstance(data, dict) else [(f.get("depart_date",""), f) for f in data]
+                for date_str, info in items:
+                    if not date_str or not date_str.startswith(month): continue
+                    price = float(info.get("price", info.get("value", 0)))
+                    if price <= 0: continue
+                    result[date_str] = {
+                        "price_ils":    round(price * ILS_PER_USD),
+                        "transfers":    info.get("number_of_changes", 0),
+                        "airline":      info.get("gate", info.get("airline", "?")),
+                        "departure_at": info.get("departure_at", date_str),
+                    }
+                if result:
+                    logger.info(f"[Aviasales-{src}] {origin}→{dest} {month}: {len(result)} prices")
+                    time.sleep(0.4)
+                    return result
+            except Exception as e:
+                logger.warning(f"[Aviasales-{src}] {origin}→{dest} {month}: {e}")
+        return {}
+
+
+def find_price(origin, dest, target_date, wizz, ryanair, aviasales):
+    """Try all sources, return the cheapest verified price found."""
+    candidates = []
+    p1 = wizz.get_price(origin, dest, target_date)
+    if p1: candidates.append(p1)
+    p2 = ryanair.get_price(origin, dest, target_date)
+    if p2: candidates.append(p2)
+    p3 = aviasales.get(origin, dest, target_date)
+    if p3: candidates.append(p3)
+
+    if not candidates: return None
+    return min(candidates, key=lambda x: x["price_ils"])
 
 
 def build_search_hub(focus_query=""):
-    """Build hub + attach real prices where available."""
     windows  = get_search_windows()
+    wizz     = WizzAirDirect()
+    ryanair  = RyanairDirect()
     av       = AviasalesPriceFinder()
     targets  = DESTINATIONS
 
@@ -233,34 +347,29 @@ def build_search_hub(focus_query=""):
         for w in windows:
             if months_only and int(w["dep"][5:7]) not in months_only:
                 continue
-
-            price_info = av.best_for_window("TLV", code, w["dep"], w["ret"])
-            window = {
+            price_info = find_price("TLV", code, w["dep"], wizz, ryanair, av)
+            dest_windows.append({
                 **w,
                 "links": build_search_links("TLV", code, w["dep"], w["ret"]),
                 "price": price_info,
-            }
-            dest_windows.append(window)
+            })
 
-        if not dest_windows:
-            continue
+        if not dest_windows: continue
 
-        # Cheapest window for this destination
-        priced = [w for w in dest_windows if w.get("price") and w["price"]["price_ils"] <= MAX_PRICE_ILS]
+        priced = [w for w in dest_windows if w.get("price")]
         cheapest = min(priced, key=lambda x: x["price"]["price_ils"]) if priced else None
 
         results.append({
             **d,
             "windows": dest_windows,
-            "best_price": cheapest["price"] if cheapest else None,
-            "best_window_label": cheapest["label"] if cheapest else None,
+            "best_price":         cheapest["price"] if cheapest else None,
+            "best_window_label":  cheapest["label"] if cheapest else None,
         })
 
-    # Sort destinations: priced first (low→high), then unpriced
     priced     = [r for r in results if r.get("best_price")]
     unpriced   = [r for r in results if not r.get("best_price")]
     priced.sort(key=lambda x: x["best_price"]["price_ils"])
+    final = priced + unpriced
 
-    sorted_results = priced + unpriced
-    logger.info(f"Hub: {len(sorted_results)} destinations | with verified prices: {len(priced)}")
-    return {"destinations": sorted_results, "n_priced": len(priced), "n_total": len(sorted_results)}
+    logger.info(f"Hub: {len(final)} destinations | priced: {len(priced)}")
+    return {"destinations": final, "n_priced": len(priced), "n_total": len(final)}
