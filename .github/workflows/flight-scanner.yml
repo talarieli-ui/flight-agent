@@ -9,7 +9,9 @@ jobs:
   scan-and-send:
     name: Scan and Send
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    permissions:
+      contents: write
     env:
       EMAIL_SESSION:    morning
       SMTP_USER:        ${{ secrets.SMTP_USER }}
@@ -25,5 +27,15 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
+
       - name: Run Scanner
         run: cd src && python -u main.py
+
+      - name: Commit cache
+        if: always()
+        run: |
+          git config user.email "flight-bot@github.com"
+          git config user.name "Flight Bot"
+          git add cache/ || true
+          git diff --quiet --cached || git commit -m "cache: prices update"
+          git push || true
