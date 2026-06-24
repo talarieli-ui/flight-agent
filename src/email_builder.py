@@ -80,7 +80,7 @@ def _build_destination_card(dest, rank=None):
         btns = (
             _site_btn("🔎 Skyscanner", w["links"]["Skyscanner"],     "#00b2e3") +
             _site_btn("Google",         w["links"]["Google Flights"], "#4285f4") +
-            _site_btn("Kiwi",           w["links"]["Kiwi.com"],       "#00a991") +
+            _site_btn("Kiwi",           w["links"]["Kiwi.com"],       "#6366f1") +
             _site_btn("Wizz",           w["links"]["Wizz Air"],       "#c6007e") +
             _site_btn("Kayak",          w["links"]["Kayak"],          "#ff690f") +
             _site_btn("Aviasales",      w["links"]["Aviasales"],      "#ff5722")
