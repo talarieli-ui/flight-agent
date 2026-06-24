@@ -244,14 +244,26 @@ class RyanairDirect:
 
 
 class AviasalesPriceFinder:
-    """Aviasales free cache. Limited coverage for TLV but worth trying."""
+    """
+    Travelpayouts Data API (Aviasales cache).
+    With token: full coverage. Without: very limited.
+    Sign up: https://www.travelpayouts.com — instant, free.
+    Token: https://www.travelpayouts.com/programs/100/tools/api
+    """
     URL_CAL = "https://api.travelpayouts.com/v1/prices/calendar"
     URL_MAT = "https://api.travelpayouts.com/v2/prices/month-matrix"
     URL_LAT = "https://api.travelpayouts.com/v2/prices/latest"
+    URL_DATES = "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
 
     def __init__(self):
+        self.token = os.environ.get("AVIASALES_TOKEN", "")
         self.s = requests.Session()
-        self.s.headers["User-Agent"] = "Mozilla/5.0"
+        self.s.headers["User-Agent"] = "Mozilla/5.0 FlightScanner"
+        if self.token:
+            self.s.headers["X-Access-Token"] = self.token
+            logger.info(f"[Travelpayouts] ✅ token set ({len(self.token)} chars)")
+        else:
+            logger.warning("[Travelpayouts] ⚠️ no AVIASALES_TOKEN — limited data")
         self._cache = {}
 
     def get(self, origin, dest, target_date):
@@ -275,35 +287,68 @@ class AviasalesPriceFinder:
         return best
 
     def _fetch_month(self, origin, dest, month):
-        for params, url, src in [
-            ({"origin":origin,"destination":dest,"depart_date":month,
-              "calendar_type":"departure_date","currency":"USD"}, self.URL_CAL, "cal"),
-            ({"origin":origin,"destination":dest,"currency":"USD"}, self.URL_LAT, "lat"),
-        ]:
+        # v3 prices_for_dates returns DETAILED list with airline, transfers, dates
+        # This is the most powerful endpoint when token is set
+        endpoints = [
+            ("v3_dates", self.URL_DATES, {
+                "origin": origin, "destination": dest,
+                "departure_at": month,
+                "currency": "usd", "limit": 30,
+                "sorting": "price", "direct": "false",
+            }),
+            ("matrix",   self.URL_MAT, {
+                "origin": origin, "destination": dest,
+                "currency": "usd", "show_to_affiliates": "false",
+            }),
+            ("calendar", self.URL_CAL, {
+                "origin": origin, "destination": dest,
+                "depart_date": month, "calendar_type": "departure_date",
+                "currency": "USD",
+            }),
+        ]
+        for src, url, params in endpoints:
             try:
                 r = self.s.get(url, params=params, timeout=10)
-                if r.status_code != 200: continue
-                data = r.json().get("data", {})
-                if not data: continue
+                if r.status_code != 200:
+                    logger.info(f"[TP-{src}] {origin}→{dest} HTTP {r.status_code}")
+                    continue
+                payload = r.json()
+                data = payload.get("data", {})
+                if not data:
+                    continue
 
                 result = {}
-                items = data.items() if isinstance(data, dict) else [(f.get("depart_date",""), f) for f in data]
+                # v3 returns list of objects, matrix returns list, calendar returns dict
+                items = []
+                if isinstance(data, list):
+                    for f in data:
+                        d = f.get("departure_at", f.get("depart_date", ""))
+                        if d: items.append((d[:10], f))
+                elif isinstance(data, dict):
+                    for k, v in data.items():
+                        items.append((k, v))
+
                 for date_str, info in items:
-                    if not date_str or not date_str.startswith(month): continue
+                    if not date_str or not date_str.startswith(month):
+                        continue
                     price = float(info.get("price", info.get("value", 0)))
                     if price <= 0: continue
+                    transfers = int(info.get("transfers", info.get("number_of_changes", 0)))
+                    if transfers > 1: continue
                     result[date_str] = {
                         "price_ils":    round(price * ILS_PER_USD),
-                        "transfers":    info.get("number_of_changes", 0),
-                        "airline":      info.get("gate", info.get("airline", "?")),
+                        "transfers":    transfers,
+                        "airline":      info.get("airline", info.get("gate", "?")),
                         "departure_at": info.get("departure_at", date_str),
                     }
                 if result:
-                    logger.info(f"[Aviasales-{src}] {origin}→{dest} {month}: {len(result)} prices")
-                    time.sleep(0.4)
+                    logger.info(f"[TP-{src}] {origin}→{dest} {month}: {len(result)} prices ✅")
+                    time.sleep(0.3)
                     return result
+                else:
+                    logger.info(f"[TP-{src}] {origin}→{dest} {month}: empty")
             except Exception as e:
-                logger.warning(f"[Aviasales-{src}] {origin}→{dest} {month}: {e}")
+                logger.warning(f"[TP-{src}] {origin}→{dest} {month}: {e}")
         return {}
 
 
