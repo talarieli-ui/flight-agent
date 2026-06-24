@@ -2,25 +2,22 @@ name: "✈️ Flight Scanner"
 
 on:
   schedule:
-    - cron: "0 4 * * *"
-    - cron: "0 17 * * *"
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 jobs:
   scan-and-send:
     name: Scan and Send
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
-      EMAIL_SESSION:         morning
-      SMTP_USER:             ${{ secrets.SMTP_USER }}
-      SMTP_PASSWORD:         ${{ secrets.SMTP_PASSWORD }}
-      SMTP_HOST:             smtp.gmail.com
-      SMTP_PORT:             "587"
-      RECIPIENT_EMAILS:      ${{ secrets.RECIPIENT_EMAILS }}
-      AVIASALES_TOKEN:       ${{ secrets.AVIASALES_TOKEN }}
-      AMADEUS_CLIENT_ID:     ${{ secrets.AMADEUS_CLIENT_ID }}
-      AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
+      EMAIL_SESSION:    morning
+      SMTP_USER:        ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
+      SMTP_HOST:        smtp.gmail.com
+      SMTP_PORT:        "587"
+      RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+      SERPAPI_KEY:      ${{ secrets.SERPAPI_KEY }}
 
     steps:
       - uses: actions/checkout@v4
