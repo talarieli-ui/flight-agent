@@ -8,16 +8,18 @@ on:
 
 jobs:
   scan-and-send:
-    name: Send search hub
+    name: Scan and Send
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      EMAIL_SESSION:    morning
-      SMTP_USER:        ${{ secrets.SMTP_USER }}
-      SMTP_PASSWORD:    ${{ secrets.SMTP_PASSWORD }}
-      SMTP_HOST:        smtp.gmail.com
-      SMTP_PORT:        "587"
-      RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+      EMAIL_SESSION:         morning
+      SMTP_USER:             ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD:         ${{ secrets.SMTP_PASSWORD }}
+      SMTP_HOST:             smtp.gmail.com
+      SMTP_PORT:             "587"
+      RECIPIENT_EMAILS:      ${{ secrets.RECIPIENT_EMAILS }}
+      AMADEUS_CLIENT_ID:     ${{ secrets.AMADEUS_CLIENT_ID }}
+      AMADEUS_CLIENT_SECRET: ${{ secrets.AMADEUS_CLIENT_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -25,5 +27,5 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - name: Build and send
+      - name: Run Scanner
         run: cd src && python -u main.py
