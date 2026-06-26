@@ -948,5 +948,495 @@
         "source": "Google Flights (Round Trip)"
       }
     ]
+  },
+  "TLV_EFL_2026-07-17_2026-07-22": {
+    "fetched_at": "2026-06-26T09:43:55.606214",
+    "flights": [
+      {
+        "price_ils": 2227,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 05:00",
+        "arrival_at": "2026-07-17 14:25",
+        "duration": 565,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2227,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 13:50",
+        "arrival_at": "2026-07-17 21:55",
+        "duration": 485,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2460,
+        "airline": "SKY express",
+        "transfers": 1,
+        "departure_at": "2026-07-17 06:30",
+        "arrival_at": "2026-07-17 19:20",
+        "duration": 770,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2538,
+        "airline": "SKY express",
+        "transfers": 1,
+        "departure_at": "2026-07-17 06:30",
+        "arrival_at": "2026-07-17 13:55",
+        "duration": 445,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_EFL_2026-08-07_2026-08-14": {
+    "fetched_at": "2026-06-26T09:44:04.188741",
+    "flights": [
+      {
+        "price_ils": 1823,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 21:15",
+        "arrival_at": "2026-08-08 21:55",
+        "duration": 1480,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2051,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 13:50",
+        "arrival_at": "2026-08-07 21:55",
+        "duration": 485,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2263,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 05:00",
+        "arrival_at": "2026-08-07 14:25",
+        "duration": 565,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2319,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 21:15",
+        "arrival_at": "2026-08-08 14:25",
+        "duration": 1030,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2876,
+        "airline": "ITA",
+        "transfers": 1,
+        "departure_at": "2026-08-07 14:30",
+        "arrival_at": "2026-08-08 19:20",
+        "duration": 1730,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_CFU_2026-07-17_2026-07-22": {
+    "fetched_at": "2026-06-26T09:44:08.381912",
+    "flights": [
+      {
+        "price_ils": 1335,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-07-17 16:00",
+        "arrival_at": "2026-07-17 18:35",
+        "duration": 155,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1400,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-07-17 08:50",
+        "arrival_at": "2026-07-17 11:25",
+        "duration": 155,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1477,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-07-17 06:55",
+        "arrival_at": "2026-07-17 09:30",
+        "duration": 155,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1740,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-07-17 11:10",
+        "arrival_at": "2026-07-17 13:50",
+        "duration": 160,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2322,
+        "airline": "flydubai",
+        "transfers": 1,
+        "departure_at": "2026-07-17 22:50",
+        "arrival_at": "2026-07-18 14:35",
+        "duration": 945,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_CFU_2026-08-07_2026-08-14": {
+    "fetched_at": "2026-06-26T09:44:14.456319",
+    "flights": [
+      {
+        "price_ils": 1254,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 21:15",
+        "arrival_at": "2026-08-08 07:35",
+        "duration": 620,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1700,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-08-07 08:50",
+        "arrival_at": "2026-08-07 11:25",
+        "duration": 155,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1777,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 13:50",
+        "arrival_at": "2026-08-07 19:20",
+        "duration": 330,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1869,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-08-07 16:00",
+        "arrival_at": "2026-08-07 18:35",
+        "duration": 155,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1986,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-08-07 06:55",
+        "arrival_at": "2026-08-07 09:30",
+        "duration": 155,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_PVK_2026-07-17_2026-07-22": {
+    "fetched_at": "2026-06-26T09:44:23.714142",
+    "flights": [
+      {
+        "price_ils": 1833,
+        "airline": "Cyprus Airways",
+        "transfers": 1,
+        "departure_at": "2026-07-17 19:30",
+        "arrival_at": "2026-07-19 09:10",
+        "duration": 2260,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2045,
+        "airline": "Austrian",
+        "transfers": 1,
+        "departure_at": "2026-07-17 15:30",
+        "arrival_at": "2026-07-18 20:30",
+        "duration": 1740,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2157,
+        "airline": "Austrian",
+        "transfers": 1,
+        "departure_at": "2026-07-17 15:30",
+        "arrival_at": "2026-07-18 08:20",
+        "duration": 1010,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2897,
+        "airline": "Smartwings",
+        "transfers": 1,
+        "departure_at": "2026-07-17 05:35",
+        "arrival_at": "2026-07-18 07:20",
+        "duration": 1545,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_PVK_2026-08-07_2026-08-14": {
+    "fetched_at": "2026-06-26T09:44:34.207343",
+    "flights": [
+      {
+        "price_ils": 3698,
+        "airline": "Austrian",
+        "transfers": 1,
+        "departure_at": "2026-08-07 06:00",
+        "arrival_at": "2026-08-08 08:20",
+        "duration": 1580,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_SKG_2026-07-17_2026-07-22": {
+    "fetched_at": "2026-06-26T09:44:47.771329",
+    "flights": [
+      {
+        "price_ils": 1148,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 06:05",
+        "arrival_at": "2026-07-17 16:30",
+        "duration": 625,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1443,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 10:45",
+        "arrival_at": "2026-07-17 17:05",
+        "duration": 380,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1556,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 05:00",
+        "arrival_at": "2026-07-17 15:40",
+        "duration": 640,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1713,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 05:10",
+        "arrival_at": "2026-07-17 12:05",
+        "duration": 415,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1718,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-07-17 05:00",
+        "arrival_at": "2026-07-17 10:25",
+        "duration": 325,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_SKG_2026-08-07_2026-08-14": {
+    "fetched_at": "2026-06-26T09:44:51.667317",
+    "flights": [
+      {
+        "price_ils": 1151,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 21:15",
+        "arrival_at": "2026-08-08 07:55",
+        "duration": 640,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1502,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 10:45",
+        "arrival_at": "2026-08-07 17:05",
+        "duration": 380,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1584,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 06:05",
+        "arrival_at": "2026-08-07 16:30",
+        "duration": 625,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1640,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 13:50",
+        "arrival_at": "2026-08-08 00:40",
+        "duration": 650,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1642,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 05:10",
+        "arrival_at": "2026-08-07 12:05",
+        "duration": 415,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_PRG_2026-07-17_2026-07-22": {
+    "fetched_at": "2026-06-26T09:45:01.677871",
+    "flights": [
+      {
+        "price_ils": 1361,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-07-17 14:55",
+        "arrival_at": "2026-07-17 17:55",
+        "duration": 240,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1422,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-07-17 16:40",
+        "arrival_at": "2026-07-17 19:45",
+        "duration": 245,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1563,
+        "airline": "Smartwings",
+        "transfers": 0,
+        "departure_at": "2026-07-17 05:35",
+        "arrival_at": "2026-07-17 08:45",
+        "duration": 250,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1715,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-07-17 06:25",
+        "arrival_at": "2026-07-17 09:30",
+        "duration": 245,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2838,
+        "airline": "flydubai",
+        "transfers": 1,
+        "departure_at": "2026-07-17 22:50",
+        "arrival_at": "2026-07-18 13:00",
+        "duration": 910,
+        "match_date": "2026-07-17",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_PRG_2026-08-07_2026-08-14": {
+    "fetched_at": "2026-06-26T09:45:06.774183",
+    "flights": [
+      {
+        "price_ils": 1498,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-08-07 14:55",
+        "arrival_at": "2026-08-07 17:55",
+        "duration": 240,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1738,
+        "airline": "Smartwings",
+        "transfers": 0,
+        "departure_at": "2026-08-07 05:35",
+        "arrival_at": "2026-08-07 08:45",
+        "duration": 250,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1916,
+        "airline": "Aegean",
+        "transfers": 1,
+        "departure_at": "2026-08-07 21:15",
+        "arrival_at": "2026-08-08 18:05",
+        "duration": 1310,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2095,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-08-07 06:25",
+        "arrival_at": "2026-08-07 09:30",
+        "duration": 245,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2095,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-08-07 16:40",
+        "arrival_at": "2026-08-07 19:45",
+        "duration": 245,
+        "match_date": "2026-08-07",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
   }
 }
