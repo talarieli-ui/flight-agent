@@ -163,7 +163,7 @@ class SerpAPIClient:
                 "return_date":   ret_date,
                 "type":          1,    # 1 = round trip
                 "travel_class":  1,
-                "stops":         2,    # 0=any, 1=nonstop, 2=up to 1 stop
+                "stops":         1,    # 1 = NONSTOP only (direct flights)
                 "currency":      "ILS",
                 "hl":            "iw",
                 "api_key":       self.key,
@@ -194,7 +194,7 @@ class SerpAPIClient:
                     continue
 
                 stops = len(legs) - 1
-                if stops > 1:
+                if stops > 0:        # ONLY direct flights
                     continue
 
                 airline = legs[0].get("airline", "?")
