@@ -151,7 +151,7 @@ def build_email_html(hub_data, session="morning", focus_query="", reply_to=""):
 <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#1e40af 0%,#7c3aed 100%);">
   <tr><td style="padding:28px 24px;text-align:center;">
     <div style="font-size:42px;margin-bottom:6px;">✈️</div>
-    <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800;">מחירי טיסה הלוך-חזור</h1>
+    <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800;">טיסות ישירות · הלוך-חזור</h1>
     <p style="color:#c7d2fe;margin:6px 0 0;font-size:13px;">
       {session_label} | {now_he} | {n_priced}/{n_total} יעדים | quota: {quota_left}
     </p>
@@ -162,10 +162,10 @@ def build_email_html(hub_data, session="morning", focus_query="", reply_to=""):
   <tr><td style="padding:14px 0;">
     <div style="background:#f0fdf4;border:1px solid #16a34a;border-radius:10px;padding:14px 18px;">
       <div style="color:#166534;font-size:14px;font-weight:700;margin-bottom:6px;">
-        ✅ מחירי הלוך-חזור אמיתיים מ-Google Flights
+        ✅ טיסות ישירות בלבד · הלוך-חזור · מחירים אמיתיים מ-Google Flights
       </div>
       <div style="color:#15803d;font-size:13px;line-height:1.7;">
-        כל מחיר = מחיר הטיסה <strong>הלוך-חזור</strong> כפי שמופיע ב-Google Flights באותו רגע.<br/>
+        כל הטיסות במייל הן <strong>ישירות ללא עצירות</strong> · מחיר <strong>הלוך-חזור</strong> כפי שמופיע ב-Google Flights באותו רגע.<br/>
         לחיצה על כפתור Skyscanner / Google / Kiwi → ייפתח האתר <strong>עם התאריכים והיעד מולאים מראש</strong>.<br/>
         צבעים: <span style="color:#16a34a;font-weight:700;">ירוק &lt; ₪800</span> ·
         <span style="color:#2563eb;font-weight:700;">כחול &lt; ₪1,500</span> ·
@@ -191,7 +191,7 @@ def build_email_html(hub_data, session="morning", focus_query="", reply_to=""):
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#1e293b;">
   <tr><td style="padding:18px 24px;text-align:center;">
     <p style="color:#64748b;font-size:11px;margin:0;">
-      ✉️ Flight Scanner v8 · הלוך-חזור · {now_he} · {calls_made} API calls
+      ✉️ Flight Scanner v9 · ישירות בלבד · הלוך-חזור · {now_he} · {calls_made} API calls
     </p>
   </td></tr>
 </table>
