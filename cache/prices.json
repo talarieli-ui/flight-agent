@@ -208,5 +208,190 @@
         "source": "Google Flights (Round Trip)"
       }
     ]
+  },
+  "TLV_CFU_2026-07-22_2026-07-27": {
+    "fetched_at": "2026-07-01T10:05:01.545860",
+    "flights": [
+      {
+        "price_ils": 1301,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-07-22 15:40",
+        "arrival_at": "2026-07-22 18:15",
+        "duration": 155,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2056,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-07-22 17:05",
+        "arrival_at": "2026-07-22 19:40",
+        "duration": 155,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2262,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-07-22 07:00",
+        "arrival_at": "2026-07-22 09:35",
+        "duration": 155,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_SKG_2026-07-22_2026-07-27": {
+    "fetched_at": "2026-07-01T10:05:11.577667",
+    "flights": [
+      {
+        "price_ils": 1847,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-07-22 07:50",
+        "arrival_at": "2026-07-22 10:25",
+        "duration": 155,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1936,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-07-22 07:05",
+        "arrival_at": "2026-07-22 09:30",
+        "duration": 145,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_SKG_2026-08-12_2026-08-19": {
+    "fetched_at": "2026-07-01T10:05:14.185242",
+    "flights": [
+      {
+        "price_ils": 1867,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-08-12 07:50",
+        "arrival_at": "2026-08-12 10:25",
+        "duration": 155,
+        "match_date": "2026-08-12",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_PRG_2026-07-22_2026-07-27": {
+    "fetched_at": "2026-07-01T10:05:31.135064",
+    "flights": [
+      {
+        "price_ils": 1586,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-07-22 14:55",
+        "arrival_at": "2026-07-22 17:55",
+        "duration": 240,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1739,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-07-22 17:10",
+        "arrival_at": "2026-07-22 20:10",
+        "duration": 240,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1856,
+        "airline": "Smartwings",
+        "transfers": 0,
+        "departure_at": "2026-07-22 05:35",
+        "arrival_at": "2026-07-22 08:45",
+        "duration": 250,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1923,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-07-22 07:10",
+        "arrival_at": "2026-07-22 10:15",
+        "duration": 245,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 3598,
+        "airline": "אל על",
+        "transfers": 0,
+        "departure_at": "2026-07-22 17:55",
+        "arrival_at": "2026-07-22 20:55",
+        "duration": 240,
+        "match_date": "2026-07-22",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
+  },
+  "TLV_PRG_2026-08-12_2026-08-19": {
+    "fetched_at": "2026-07-01T10:05:41.142621",
+    "flights": [
+      {
+        "price_ils": 1873,
+        "airline": "Tus Air",
+        "transfers": 0,
+        "departure_at": "2026-08-12 14:55",
+        "arrival_at": "2026-08-12 17:55",
+        "duration": 240,
+        "match_date": "2026-08-12",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 1944,
+        "airline": "Smartwings",
+        "transfers": 0,
+        "departure_at": "2026-08-12 05:35",
+        "arrival_at": "2026-08-12 08:45",
+        "duration": 250,
+        "match_date": "2026-08-12",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2432,
+        "airline": "ארקיע",
+        "transfers": 0,
+        "departure_at": "2026-08-12 17:10",
+        "arrival_at": "2026-08-12 20:10",
+        "duration": 240,
+        "match_date": "2026-08-12",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 2777,
+        "airline": "ישראייר",
+        "transfers": 0,
+        "departure_at": "2026-08-12 07:10",
+        "arrival_at": "2026-08-12 10:15",
+        "duration": 245,
+        "match_date": "2026-08-12",
+        "source": "Google Flights (Round Trip)"
+      },
+      {
+        "price_ils": 3168,
+        "airline": "אל על",
+        "transfers": 0,
+        "departure_at": "2026-08-12 06:40",
+        "arrival_at": "2026-08-12 09:40",
+        "duration": 240,
+        "match_date": "2026-08-12",
+        "source": "Google Flights (Round Trip)"
+      }
+    ]
   }
 }
